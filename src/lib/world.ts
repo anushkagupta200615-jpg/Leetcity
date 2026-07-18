@@ -46,6 +46,12 @@ export function towerPosition(username: string): [number, number] {
   return [px * PLOT, pz * PLOT]
 }
 
+/** World-space position of a specific plot (works for citizens too). */
+export function plotToPosition(plot: number): [number, number] {
+  const [px, pz] = ulam(plot)
+  return [px * PLOT, pz * PLOT]
+}
+
 /** Difficulty-weighted score: a Hard counts 5x an Easy. */
 export function towerScore(easy: number, medium: number, hard: number): number {
   return easy + medium * 2.5 + hard * 5

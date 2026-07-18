@@ -1,11 +1,19 @@
-import { Component, Suspense, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
+import {
+  Component,
+  Suspense,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
 import type { StoredTower } from '../types'
 import { PLOT, ulam, towerHeight } from '../lib/world'
-import { buildNpcTowers } from '../lib/roster'
+import { buildNpcTowers, type NpcTower } from '../lib/roster'
 import { THEMES, shade } from '../lib/themes'
 import { useCityStore } from '../store'
 import Ground from './Ground'
@@ -13,8 +21,12 @@ import Ground from './Ground'
 const WORLD_RADIUS = 170
 /** How many spiral plots get citizen buildings. */
 const FILLER_PLOTS = 440
-/** Show floating name labels above this many of the tallest citizens. */
-const LABELLED_CITIZENS = 10
+/** Always label this many of the tallest citizens. */
+const TALLEST_LABELS = 6
+/** Also label citizens within this radius of the camera focus. */
+const NEAR_LABEL_R = 48
+/** Uniform building footprint so the skyline reads as one planned city. */
+const FOOTPRINT = 2.8
 
 class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -29,7 +41,12 @@ class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean
 const tmpObject = new THREE.Object3D()
 const tmpColor = new THREE.Color()
 
-/** Dominant-difficulty facade color for a tower's stats. */
+/**
+ * THE ONE color rule for every building in World view — real users and NPC
+ * citizens alike. Facade = the user's Easy/Med/Hard mix, pulled toward their
+ * dominant difficulty; dimmed at night; darkened if inactive. Applied
+ * identically everywhere so the whole city reads consistently.
+ */
 function towerColor(
   t: StoredTower,
   theme: (typeof THEMES)[keyof typeof THEMES],
@@ -52,29 +69,69 @@ function towerColor(
   return c
 }
 
+/** Small billboarded name label used above buildings. */
+function TowerLabel({
+  x,
+  z,
+  y,
+  name,
+  color,
+  bg,
+  size = 1.05,
+}: {
+  x: number
+  z: number
+  y: number
+  name: string
+  color: string
+  bg: string
+  size?: number
+}) {
+  return (
+    <LabelBoundary>
+      <Suspense fallback={null}>
+        <Billboard position={[x, y, z]}>
+          <Text
+            font="/fonts/label.ttf"
+            fontSize={size}
+            color={color}
+            anchorX="center"
+            anchorY="bottom"
+            outlineWidth={0.04}
+            outlineColor={bg}
+          >
+            {name}
+          </Text>
+        </Billboard>
+      </Suspense>
+    </LabelBoundary>
+  )
+}
+
 /**
- * Every free plot in the world is a clickable citizen with a (synthetic)
- * profile. Rendered as one InstancedMesh for performance; clicking a building
- * opens that citizen's profile card. The tallest ones are the strongest solvers.
+ * Every free plot is a clickable citizen with a synthetic profile, drawn in one
+ * InstancedMesh for performance. Labels show for the tallest few, for anyone
+ * near the camera focus, and for whatever building you hover.
  */
-function Citizens({ occupied }: { occupied: Set<number> }) {
+function Citizens({
+  occupied,
+  avoid,
+  focus,
+}: {
+  occupied: Set<number>
+  avoid: Array<[number, number]>
+  focus: [number, number]
+}) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const themeKey = useCityStore((s) => s.theme)
   const night = useCityStore((s) => s.night)
   const setWorldSelection = useCityStore((s) => s.setWorldSelection)
   const theme = THEMES[themeKey]
+  const [hover, setHover] = useState<number | null>(null)
 
   const npcs = useMemo(
-    () => buildNpcTowers(occupied, FILLER_PLOTS),
-    [occupied],
-  )
-
-  const labelled = useMemo(
-    () =>
-      [...npcs]
-        .sort((a, b) => b.height - a.height)
-        .slice(0, LABELLED_CITIZENS),
-    [npcs],
+    () => buildNpcTowers(occupied, FILLER_PLOTS, avoid, PLOT * 3.6),
+    [occupied, avoid],
   )
 
   useLayoutEffect(() => {
@@ -82,17 +139,35 @@ function Citizens({ occupied }: { occupied: Set<number> }) {
     if (!mesh) return
     npcs.forEach((n, i) => {
       tmpObject.position.set(n.x, n.height / 2, n.z)
-      tmpObject.scale.set(2.4, n.height, 2.4)
+      tmpObject.scale.set(FOOTPRINT, n.height, FOOTPRINT)
       tmpObject.rotation.set(0, 0, 0)
       tmpObject.updateMatrix()
       mesh.setMatrixAt(i, tmpObject.matrix)
-      tmpColor.copy(towerColor(n.tower, theme, night)).multiplyScalar(0.85)
+      // identical color rule as real towers (no extra dimming)
+      tmpColor.copy(towerColor(n.tower, theme, night))
       mesh.setColorAt(i, tmpColor)
     })
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     mesh.computeBoundingSphere()
   }, [npcs, theme, night])
+
+  // Which citizens get a floating label: tallest few ∪ near-focus ∪ hovered.
+  const toLabel = useMemo(() => {
+    const map = new Map<string, NpcTower>()
+    ;[...npcs]
+      .sort((a, b) => b.height - a.height)
+      .slice(0, TALLEST_LABELS)
+      .forEach((n) => map.set(n.tower.username, n))
+    const r2 = NEAR_LABEL_R * NEAR_LABEL_R
+    for (const n of npcs) {
+      if ((n.x - focus[0]) ** 2 + (n.z - focus[1]) ** 2 < r2)
+        map.set(n.tower.username, n)
+    }
+    return [...map.values()]
+  }, [npcs, focus])
+
+  const hovered = hover !== null ? npcs[hover] : null
 
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
@@ -110,37 +185,48 @@ function Citizens({ occupied }: { occupied: Set<number> }) {
         receiveShadow
         frustumCulled={false}
         onClick={onClick}
-        onPointerOver={() => (document.body.style.cursor = 'pointer')}
-        onPointerOut={() => (document.body.style.cursor = 'default')}
+        onPointerMove={(e) => {
+          e.stopPropagation()
+          setHover(e.instanceId ?? null)
+          document.body.style.cursor = 'pointer'
+        }}
+        onPointerOut={() => {
+          setHover(null)
+          document.body.style.cursor = 'default'
+        }}
       >
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial roughness={0.55} metalness={0.25} />
+        <meshStandardMaterial roughness={0.5} metalness={0.28} />
       </instancedMesh>
 
-      {labelled.map((n) => (
-        <LabelBoundary key={n.tower.username}>
-          <Suspense fallback={null}>
-            <Billboard position={[n.x, n.height + 2, n.z]}>
-              <Text
-                font="/fonts/label.ttf"
-                fontSize={1.05}
-                color={theme.label}
-                anchorX="center"
-                anchorY="bottom"
-                outlineWidth={0.04}
-                outlineColor={theme.bgTop}
-              >
-                {n.tower.username}
-              </Text>
-            </Billboard>
-          </Suspense>
-        </LabelBoundary>
+      {toLabel.map((n) => (
+        <TowerLabel
+          key={n.tower.username}
+          x={n.x}
+          z={n.z}
+          y={n.height + 2}
+          name={n.tower.username}
+          color={theme.label}
+          bg={theme.bgTop}
+        />
       ))}
+
+      {hovered && (
+        <TowerLabel
+          x={hovered.x}
+          z={hovered.z}
+          y={hovered.height + 2}
+          name={hovered.tower.username}
+          color={theme.accent}
+          bg={theme.bgTop}
+          size={1.25}
+        />
+      )}
     </group>
   )
 }
 
-/** One user's tower on their home plot. */
+/** One real (searched) user's tower on their home plot. */
 function Tower({ tower, isCurrent }: { tower: StoredTower; isCurrent: boolean }) {
   const themeKey = useCityStore((s) => s.theme)
   const night = useCityStore((s) => s.night)
@@ -152,28 +238,10 @@ function Tower({ tower, isCurrent }: { tower: StoredTower; isCurrent: boolean })
   const x = px * PLOT
   const z = pz * PLOT
   const h = towerHeight(tower)
-  // Recency: towers of inactive users go dark (legacy entries stay lit).
   const active = (tower.recent ?? 1) > 0
 
-  // Facade color = difficulty mix, pulled toward the dominant difficulty
-  // so towers don't all blur into the same olive tone.
-  const color = useMemo(() => {
-    const total = Math.max(1, tower.all)
-    const c = new THREE.Color(0, 0, 0)
-    c.add(new THREE.Color(theme.easy).multiplyScalar(tower.easy / total))
-    c.add(new THREE.Color(theme.medium).multiplyScalar(tower.medium / total))
-    c.add(new THREE.Color(theme.hard).multiplyScalar(tower.hard / total))
-    const dominant =
-      tower.hard >= tower.medium && tower.hard >= tower.easy
-        ? theme.hard
-        : tower.medium >= tower.easy
-          ? theme.medium
-          : theme.easy
-    c.lerp(new THREE.Color(dominant), 0.45)
-    if (night) c.multiplyScalar(0.7)
-    if ((tower.recent ?? 1) === 0) c.multiplyScalar(0.35) // inactive = dark
-    return c
-  }, [tower, theme, night])
+  // Same shared color rule as citizens — one consistent language.
+  const color = useMemo(() => towerColor(tower, theme, night), [tower, theme, night])
 
   useFrame(({ clock }) => {
     if (beaconRef.current) {
@@ -195,12 +263,12 @@ function Tower({ tower, isCurrent }: { tower: StoredTower; isCurrent: boolean })
         onPointerOver={() => (document.body.style.cursor = 'pointer')}
         onPointerOut={() => (document.body.style.cursor = 'default')}
       >
-        <boxGeometry args={[3.4, h, 3.4]} />
-        <meshStandardMaterial color={color} roughness={0.45} metalness={0.3} />
+        <boxGeometry args={[FOOTPRINT, h, FOOTPRINT]} />
+        <meshStandardMaterial color={color} roughness={0.5} metalness={0.28} />
       </mesh>
       {/* roof cap */}
       <mesh position={[0, h + 0.35, 0]} castShadow>
-        <boxGeometry args={[2.4, 0.7, 2.4]} />
+        <boxGeometry args={[FOOTPRINT * 0.72, 0.7, FOOTPRINT * 0.72]} />
         <meshStandardMaterial color={shade('#8a93a8', night ? 0.6 : 1)} roughness={0.5} />
       </mesh>
       {/* contest beacon (dark for inactive users) */}
@@ -217,11 +285,15 @@ function Tower({ tower, isCurrent }: { tower: StoredTower; isCurrent: boolean })
       {/* "you are here": ring + sky spotlight beam */}
       {isCurrent && (
         <>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+          <mesh
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, 0.06, 0]}
+            raycast={() => null}
+          >
             <ringGeometry args={[3.2, 4.4, 48]} />
             <meshBasicMaterial color={theme.accent} transparent opacity={0.85} />
           </mesh>
-          <mesh position={[0, h + 30, 0]}>
+          <mesh position={[0, h + 30, 0]} raycast={() => null}>
             <cylinderGeometry args={[7.5, 2.6, 60, 24, 1, true]} />
             <meshBasicMaterial
               color={theme.accent}
@@ -267,6 +339,25 @@ function Tower({ tower, isCurrent }: { tower: StoredTower; isCurrent: boolean })
   )
 }
 
+/** Yellow ring on the currently selected building — the one "special" marker. */
+function SelectionRing() {
+  const sel = useCityStore((s) => s.worldSelection)
+  const themeKey = useCityStore((s) => s.theme)
+  const theme = THEMES[themeKey]
+  if (!sel) return null
+  const [px, pz] = ulam(sel.plot)
+  return (
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[px * PLOT, 0.08, pz * PLOT]}
+      raycast={() => null}
+    >
+      <ringGeometry args={[3.0, 4.2, 48]} />
+      <meshBasicMaterial color={theme.accent} transparent opacity={0.9} />
+    </mesh>
+  )
+}
+
 /** Central monument marking the world origin. */
 function Monument() {
   const themeKey = useCityStore((s) => s.theme)
@@ -296,14 +387,31 @@ function Monument() {
 export default function World() {
   const towers = useCityStore((s) => s.towers)
   const currentName = useCityStore((s) => s.data?.username ?? '')
+  const worldSelection = useCityStore((s) => s.worldSelection)
 
   const occupied = useMemo(() => new Set(towers.map((t) => t.plot)), [towers])
+  const avoid = useMemo(
+    () => towers.map((t) => ulam(t.plot).map((v) => v * PLOT) as [number, number]),
+    [towers],
+  )
+
+  // Where the camera is looking — used to decide which citizen labels to show.
+  const focus = useMemo<[number, number]>(() => {
+    const plot =
+      worldSelection?.plot ??
+      towers.find((t) => t.username.toLowerCase() === currentName.toLowerCase())
+        ?.plot
+    if (plot === undefined) return [0, 0]
+    const [px, pz] = ulam(plot)
+    return [px * PLOT, pz * PLOT]
+  }, [worldSelection, towers, currentName])
 
   return (
     <group>
       <Ground radius={WORLD_RADIUS} />
       <Monument />
-      <Citizens occupied={occupied} />
+      <Citizens occupied={occupied} avoid={avoid} focus={focus} />
+      <SelectionRing />
       {towers.map((t) => (
         <Tower
           key={t.username}

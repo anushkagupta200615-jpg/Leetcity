@@ -830,3 +830,155 @@ body,
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- GitCity-style profile card ---------- */
+
+.profile-card {
+  position: absolute;
+  top: 76px;
+  right: 18px;
+  z-index: 10;
+  width: 340px;
+  padding: 18px 18px 16px;
+}
+
+.pc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pc-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 2px;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 1px #05070c, 0 0 14px rgba(255, 161, 22, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1f2e;
+  color: var(--accent);
+  font-family: var(--pixel);
+  font-size: 18px;
+}
+
+.pc-name {
+  font-family: var(--pixel);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.pc-handle {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+  margin-top: 7px;
+  letter-spacing: 0.5px;
+}
+
+.pc-level {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.pc-lvl-badge {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pixel);
+  font-size: 16px;
+  color: var(--accent);
+  background: rgba(255, 161, 22, 0.08);
+}
+
+.pc-lvl-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pc-lvl-title {
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+}
+
+.pc-xpbar {
+  height: 8px;
+  margin-top: 7px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #10131d;
+  overflow: hidden;
+}
+
+.pc-xpfill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--easy), var(--accent));
+  transition: width 0.4s ease;
+}
+
+.pc-xptext {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--muted);
+  margin-top: 5px;
+  letter-spacing: 0.5px;
+}
+
+.pc-tag {
+  display: inline-block;
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--accent);
+  border: 1px solid rgba(255, 161, 22, 0.4);
+  background: rgba(255, 161, 22, 0.06);
+  border-radius: 2px;
+  padding: 6px 9px;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.pc-stats {
+  gap: 7px;
+}
+
+.pc-stats .stat {
+  padding: 9px 4px;
+}
+
+.pc-section {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+  margin: 12px 0 8px;
+  letter-spacing: 0.5px;
+}
+
+.pc-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pc-actions .pixel-button {
+  padding: 11px 8px;
+}
+
+@media (max-width: 640px) {
+  .profile-card {
+    width: calc(100vw - 20px);
+    right: 10px;
+    top: 66px;
+  }
+}

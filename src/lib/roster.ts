@@ -203,17 +203,28 @@ export interface NpcTower {
  * belongs to someone whose profile you can open. Heights scale with their
  * solve score, so the tallest towers really are the strongest solvers.
  */
-export function buildNpcTowers(occupied: Set<number>, plots = 440): NpcTower[] {
+export function buildNpcTowers(
+  occupied: Set<number>,
+  plots = 440,
+  /** keep a clear plaza around these world positions (real towers) */
+  avoid: Array<[number, number]> = [],
+  avoidRadius = 0,
+): NpcTower[] {
   const out: NpcTower[] = []
+  const r2 = avoidRadius * avoidRadius
   for (let i = RESERVED; i < RESERVED + plots; i++) {
     if (occupied.has(i)) continue
     const keep = mulberry32((i * 40503) >>> 0)
-    if (keep() < 0.45) continue // some plots stay vacant
+    if (keep() < 0.15) continue // a few plots stay vacant; mostly a dense, even city
+    const [px, pz] = ulam(i)
+    const x = px * PLOT
+    const z = pz * PLOT
+    // Don't crowd real towers, so clicking one always hits that person.
+    if (avoid.some(([ax, az]) => (ax - x) ** 2 + (az - z) ** 2 < r2)) continue
     const name = npcNameForPlot(i)
     const tower = syntheticTower(name, i)
     if (tower.all < 1) continue
-    const [px, pz] = ulam(i)
-    out.push({ tower, x: px * PLOT, z: pz * PLOT, height: towerHeight(tower) })
+    out.push({ tower, x, z, height: towerHeight(tower) })
   }
   return out
 }

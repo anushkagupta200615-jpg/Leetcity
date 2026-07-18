@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import type { CityData } from '../types'
 import { buildCityLayout } from '../lib/cityLayout'
 import { THEMES, shade } from '../lib/themes'
-import { towerPosition } from '../lib/world'
+import { towerPosition, plotToPosition } from '../lib/world'
 import { buildNeighborhood } from '../lib/roster'
 import { useCityStore } from '../store'
 import City from './City'
@@ -39,6 +39,7 @@ export default function Scene({ data }: { data: CityData }) {
   const night = useCityStore((s) => s.night)
   const mode = useCityStore((s) => s.mode)
   const roster = useCityStore((s) => s.roster)
+  const worldSelection = useCityStore((s) => s.worldSelection)
   const setSelection = useCityStore((s) => s.setSelection)
   const setWorldSelection = useCityStore((s) => s.setWorldSelection)
   const theme = THEMES[themeKey]
@@ -54,15 +55,27 @@ export default function Scene({ data }: { data: CityData }) {
   const bgBottom = shade(theme.bgBottom, dim)
 
   const isWorld = mode === 'world'
-  const [tx, tz] = isWorld ? towerPosition(data.username) : [0, 0]
+  // In world mode, focus whichever tower is selected — click yours, yours fills
+  // the view; click someone else's, theirs does. Default: your own tower.
+  const [tx, tz] = isWorld
+    ? worldSelection
+      ? plotToPosition(worldSelection.plot)
+      : towerPosition(data.username)
+    : [0, 0]
   const target: [number, number, number] = isWorld ? [tx, 10, tz] : [0, 4, 0]
   const camDistance = isWorld
-    ? 62
+    ? worldSelection
+      ? 32 // zoom in on the selected tower
+      : 72 // default: a skyline view of the whole city, your tower centered
     : isMulti && hood
       ? hood.radius * 1.05
       : Math.max(30, layout.cityRadius * 1.45)
   const fogRadius = isWorld ? 300 : isMulti && hood ? hood.radius : layout.cityRadius
   const far = Math.max(1200, fogRadius * 10)
+  // Fog: hug the actual world so distant buildings fade into depth (City/Versus
+  // keep their existing city-sized fog untouched).
+  const fogNear = isWorld ? 60 : fogRadius * 1.6
+  const fogFar = isWorld ? 240 : fogRadius * 5
 
   return (
     <Canvas
@@ -76,7 +89,7 @@ export default function Scene({ data }: { data: CityData }) {
         setWorldSelection(null)
       }}
     >
-      <fog attach="fog" args={[bgTop, fogRadius * 1.6, fogRadius * 5]} />
+      <fog attach="fog" args={[bgTop, fogNear, fogFar]} />
 
       <hemisphereLight
         args={night ? ['#2a3660', '#05070c', 0.5] : ['#5a6b9e', '#12151c', 0.7]}
