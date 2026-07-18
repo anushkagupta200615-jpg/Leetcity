@@ -26,6 +26,8 @@ export interface CityData {
   streak: number
   fetchedAt: string
   isDemo?: boolean
+  /** which platform this city was built from (default leetcode) */
+  platform?: 'leetcode' | 'codeforces'
 }
 
 export type Difficulty = 'easy' | 'medium' | 'hard'

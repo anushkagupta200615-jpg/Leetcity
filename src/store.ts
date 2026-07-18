@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { CityData, Selection, StoredTower } from './types'
 import { demoCityData, fetchCityData } from './lib/leetcode'
+import { fetchCodeforcesCity } from './lib/codeforces'
 import { loadTowers, saveTower } from './lib/world'
 import { getRoster } from './lib/roster'
 import { upsertProfile, fetchProfiles, supabaseEnabled } from './lib/supabase'
@@ -23,6 +24,8 @@ interface CityState {
   raceOpen: boolean
   insightsOpen: boolean
   leaderboardOpen: boolean
+  roadmapOpen: boolean
+  platform: 'leetcode' | 'codeforces'
   load: (username: string) => Promise<void>
   loadDemo: () => void
   setTheme: (theme: ThemeKey) => void
@@ -33,6 +36,8 @@ interface CityState {
   setRaceOpen: (open: boolean) => void
   setInsightsOpen: (open: boolean) => void
   setLeaderboardOpen: (open: boolean) => void
+  setRoadmapOpen: (open: boolean) => void
+  setPlatform: (p: 'leetcode' | 'codeforces') => void
   /** Pull the real shared-world population from the backend (no-op if disabled). */
   refreshWorld: () => Promise<void>
   /** Show a city directly (used for synthetic citizens; not persisted). */
@@ -54,6 +59,8 @@ export const useCityStore = create<CityState>((set, get) => ({
   raceOpen: false,
   insightsOpen: false,
   leaderboardOpen: false,
+  roadmapOpen: false,
+  platform: 'leetcode',
 
   load: async (username: string) => {
     const name = username.trim()
@@ -71,8 +78,12 @@ export const useCityStore = create<CityState>((set, get) => ({
       return
     }
     set({ loading: true, error: null })
+    const platform = get().platform
     try {
-      const data = await fetchCityData(name)
+      const data =
+        platform === 'codeforces'
+          ? await fetchCodeforcesCity(name)
+          : await fetchCityData(name)
       set({
         data,
         loading: false,
@@ -80,8 +91,8 @@ export const useCityStore = create<CityState>((set, get) => ({
         worldSelection: null,
         towers: saveTower(data),
       })
-      // Publish to the shared world + pull the latest population (no-op offline).
-      if (supabaseEnabled) {
+      // Shared world/leaderboard is LeetCode-based; only publish those.
+      if (supabaseEnabled && platform === 'leetcode') {
         upsertProfile(data).then(() => get().refreshWorld())
       }
     } catch (err) {
@@ -90,7 +101,7 @@ export const useCityStore = create<CityState>((set, get) => ({
         error:
           err instanceof Error
             ? err.message
-            : 'Could not reach LeetCode. Try again, or type "demo" to explore a sample city.',
+            : `Could not reach ${platform === 'codeforces' ? 'Codeforces' : 'LeetCode'}. Try again, or type "demo".`,
       })
     }
   },
@@ -127,6 +138,8 @@ export const useCityStore = create<CityState>((set, get) => ({
   setRaceOpen: (open) => set({ raceOpen: open }),
   setInsightsOpen: (open) => set({ insightsOpen: open }),
   setLeaderboardOpen: (open) => set({ leaderboardOpen: open }),
+  setRoadmapOpen: (open) => set({ roadmapOpen: open }),
+  setPlatform: (p) => set({ platform: p }),
   refreshWorld: async () => {
     if (!supabaseEnabled) return
     const profiles = await fetchProfiles()

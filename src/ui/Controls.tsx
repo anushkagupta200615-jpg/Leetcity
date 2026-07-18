@@ -18,6 +18,7 @@ export default function Controls() {
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
   const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
   const setLeaderboardOpen = useCityStore((s) => s.setLeaderboardOpen)
+  const setRoadmapOpen = useCityStore((s) => s.setRoadmapOpen)
 
   return (
     <div className="controls">
@@ -38,9 +39,17 @@ export default function Controls() {
         type="button"
         className="insights-btn"
         onClick={() => setInsightsOpen(true)}
-        title="Insights: pace, gaps, readiness"
+        title="Insights: pace, gaps, readiness, resume"
       >
         📊 Insights
+      </button>
+      <button
+        type="button"
+        className="roadmap-btn"
+        onClick={() => setRoadmapOpen(true)}
+        title="Study roadmaps (Blind 75)"
+      >
+        🗺 Roadmap
       </button>
       {supabaseEnabled && (
         <button

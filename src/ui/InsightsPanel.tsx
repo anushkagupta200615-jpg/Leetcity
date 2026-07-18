@@ -6,6 +6,7 @@ import {
   companyReadiness,
   standing,
   wrappedStory,
+  resumeLines,
 } from '../lib/insights'
 import { COMPANIES } from '../lib/problems'
 
@@ -23,8 +24,17 @@ export default function InsightsPanel() {
   )
   const stand = useMemo(() => (data ? standing(data) : null), [data])
   const story = useMemo(() => (data ? wrappedStory(data) : []), [data])
+  const resume = useMemo(() => (data ? resumeLines(data) : []), [data])
+  const [copied, setCopied] = useState<number | null>(null)
 
   if (!open || !data) return null
+
+  const copy = (text: string, i: number) => {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(i)
+      setTimeout(() => setCopied(null), 1500)
+    })
+  }
 
   return (
     <div className="ins-overlay" onClick={() => setOpen(false)}>
@@ -182,6 +192,26 @@ export default function InsightsPanel() {
                     ))}
                   </div>
                 </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Resume lines */}
+        {resume.length > 0 && (
+          <section className="ins-section">
+            <div className="ins-h">RESUME LINES · TAP TO COPY</div>
+            <div className="ins-resume">
+              {resume.map((line, i) => (
+                <button
+                  key={i}
+                  className="ins-resume-line"
+                  onClick={() => copy(line, i)}
+                  type="button"
+                >
+                  <span>{line}</span>
+                  <em>{copied === i ? 'COPIED ✓' : 'COPY'}</em>
+                </button>
               ))}
             </div>
           </section>

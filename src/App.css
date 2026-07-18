@@ -1572,3 +1572,275 @@ body,
   margin-top: 8px;
   letter-spacing: 0.5px;
 }
+
+/* ---------- platform selector in search ---------- */
+.platform-select {
+  font-family: var(--pixel);
+  font-size: 8px;
+  background: #10131d;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  border-radius: 2px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.roadmap-btn {
+  color: #7dd3fc !important;
+}
+
+/* ---------- resume lines (in Insights) ---------- */
+.ins-resume {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ins-resume-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  background: #10131d;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.ins-resume-line:hover {
+  border-color: var(--accent);
+}
+
+.ins-resume-line em {
+  flex-shrink: 0;
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--accent);
+  font-style: normal;
+}
+
+/* ---------- roadmap modal ---------- */
+.rm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 5, 9, 0.8);
+  animation: panel-in 0.15s ease-out;
+}
+
+.rm-modal {
+  position: relative;
+  width: min(560px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px 22px;
+  background: #0c0f17;
+}
+
+.rm-title {
+  font-family: var(--pixel);
+  font-size: 14px;
+  color: #7dd3fc;
+  letter-spacing: 0.5px;
+}
+
+.rm-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 10px;
+}
+
+.rm-head-row select {
+  font-family: var(--pixel);
+  font-size: 9px;
+  background: #10131d;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 2px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.rm-count {
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.rm-bar {
+  position: relative;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #10131d;
+  overflow: hidden;
+}
+
+.rm-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, var(--easy));
+  transition: width 0.4s ease;
+}
+
+.rm-bar span {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: var(--text);
+  text-shadow: 0 1px 2px #000;
+}
+
+.rm-auto {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--easy);
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+}
+
+.rm-groups {
+  margin-top: 14px;
+}
+
+.rm-group {
+  margin-bottom: 14px;
+}
+
+.rm-group-h {
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.rm-group-h em {
+  color: var(--text);
+  font-style: normal;
+  float: right;
+}
+
+.rm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.rm-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #10131d;
+  color: var(--easy);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rm-item.done .rm-check {
+  border-color: var(--easy);
+  background: rgba(0, 184, 163, 0.15);
+}
+
+.rm-name {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rm-name:hover {
+  color: var(--accent);
+}
+
+.rm-item.done .rm-name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.rm-diff {
+  font-family: var(--pixel);
+  font-size: 8px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.rm-diff.easy {
+  color: var(--easy);
+}
+.rm-diff.medium {
+  color: var(--medium);
+}
+.rm-diff.hard {
+  color: var(--hard);
+}
+
+.rm-foot {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: #4a526a;
+  margin-top: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- top-bar control alignment (crisp, equal-height segmented modes) ---------- */
+.topbar .mode-group,
+.topbar .controls > button,
+.topbar .controls > select {
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.topbar .mode-group {
+  align-items: stretch;
+  padding: 0;
+}
+
+.topbar .mode-btn {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  border-radius: 0;
+  padding: 0 12px;
+}
+
+.topbar .controls > button,
+.topbar .controls > select {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* roadmap "open" arrow */
+.rm-go {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.rm-name:hover .rm-go {
+  color: var(--accent);
+}

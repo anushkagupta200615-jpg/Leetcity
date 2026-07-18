@@ -10,6 +10,7 @@ import WorldPanel from './ui/WorldPanel'
 import RacePanel from './ui/RacePanel'
 import InsightsPanel from './ui/InsightsPanel'
 import Leaderboard from './ui/Leaderboard'
+import RoadmapPanel from './ui/RoadmapPanel'
 import './App.css'
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
   const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
   const setLeaderboardOpen = useCityStore((s) => s.setLeaderboardOpen)
+  const setRoadmapOpen = useCityStore((s) => s.setRoadmapOpen)
   const refreshWorld = useCityStore((s) => s.refreshWorld)
 
   // Pull the shared population once on load (no-op if backend disabled).
@@ -36,11 +38,12 @@ export default function App() {
         setRaceOpen(false)
         setInsightsOpen(false)
         setLeaderboardOpen(false)
+        setRoadmapOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen])
+  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen, setRoadmapOpen])
 
   return (
     <div className="app">
@@ -59,6 +62,7 @@ export default function App() {
           <RacePanel />
           <InsightsPanel />
           <Leaderboard />
+          <RoadmapPanel />
           <div className="hud-hints">
             DRAG <span>ORBIT</span> · SCROLL <span>ZOOM</span> · CLICK{' '}
             <span>INSPECT</span> · ESC <span>CLOSE</span>

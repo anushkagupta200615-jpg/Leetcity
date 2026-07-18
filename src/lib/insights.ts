@@ -192,6 +192,36 @@ export function standing(data: CityData): Standing {
 }
 
 /* ------------------------------------------------------------------ */
+/* Resume line generator                                               */
+/* ------------------------------------------------------------------ */
+
+export function resumeLines(data: CityData): string[] {
+  const { all, medium, hard } = data.totals
+  const st = standing(data)
+  const top = data.topics.slice(0, 2).map((t) => t.label)
+  const rounded = all >= 100 ? `${Math.floor(all / 100) * 100}+` : `${all}`
+  const platform = data.platform === 'codeforces' ? 'Codeforces' : 'LeetCode'
+
+  const lines: string[] = []
+  lines.push(
+    `Solved ${rounded} ${platform} problems (estimated top ${st.percentile}%)` +
+      (top.length ? `, with strong command of ${top.join(' and ')}.` : '.'),
+  )
+  if (data.contest) {
+    lines.push(
+      `Reached a ${platform} contest rating of ${data.contest.rating}` +
+        (data.contest.topPercentage
+          ? ` (top ${data.contest.topPercentage.toFixed(1)}% globally).`
+          : '.'),
+    )
+  }
+  lines.push(
+    `Strengthened algorithmic problem-solving through ${medium} Medium and ${hard} Hard problems across ${data.topics.length} topics.`,
+  )
+  return lines
+}
+
+/* ------------------------------------------------------------------ */
 /* "LeetCode Wrapped" story                                            */
 /* ------------------------------------------------------------------ */
 
