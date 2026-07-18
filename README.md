@@ -5,8 +5,7 @@
 Type any public LeetCode username and LeetCity procedurally generates a neon,
 pixel-art city from that profile — topics become districts, every solved problem
 becomes a building, difficulty drives height and color, and your contest rating
-rises as a glowing central spire. Inspired by [GitCity](https://thegitcity.com),
-built for the competitive-programming crowd.
+rises as a glowing central spire. Built for the competitive-programming crowd.
 
 > No login. No backend required. Runs entirely in the browser against LeetCode's
 > public GraphQL data, with a built-in demo city that needs no network at all.
