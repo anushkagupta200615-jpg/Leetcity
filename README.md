@@ -10,22 +10,9 @@ Type in any LeetCode username and get an explorable skyline built from their pro
 - **Window glow** = recent submission activity (last 30 days)
 - Same username → same city, every time (deterministic seeding)
 
-## Quick start
+## Live Demo
 
-```bash
-npm install
-npm run dev
-```
-
-Open http://localhost:5173, type a LeetCode username (or click "explore a demo city" — the demo needs no network at all).
-
-In dev, `vite.config.ts` proxies `/api/leetcode` → `https://leetcode.com/graphql` with the right headers, so CORS is a non-issue.
-
-## Deploying
-
-Push to **Vercel** and it works as-is: the `api/leetcode.ts` edge function takes over the same `/api/leetcode` path the dev proxy serves, with 1-hour edge caching per query.
-
-Other hosts: deploy `dist/` as static files plus any equivalent proxy that forwards POST bodies to `https://leetcode.com/graphql` with `Referer: https://leetcode.com`.
+🚀 **[Explore LeetCity live!](https://leetcity-lac.vercel.app)**
 
 ## Project layout
 
