@@ -167,13 +167,16 @@ npm run preview    # preview the production build
 
 ---
 
-## ☁️ Deploying
+## ☁️ Deployment
 
-Push to **Vercel** and it works as-is: `api/leetcode.ts` is picked up as an Edge
-Function serving the same `/api/leetcode` path the dev proxy serves, with 1-hour
-edge caching. For any other static host, deploy `dist/` plus an equivalent proxy
-that forwards POST bodies to `leetcode.com/graphql` with a `Referer:
-https://leetcode.com` header.
+### Vercel (Recommended)
+This project is optimized for deployment on Vercel. Upon pushing the repository to Vercel, the application will function out-of-the-box. The `api/leetcode.ts` file is automatically detected and deployed as a Vercel Edge Function. This function mirrors the `/api/leetcode` path utilized by the local development proxy and includes built-in 1-hour edge caching for optimal performance.
+
+### Alternative Hosting Platforms
+If you choose to deploy on an alternative static hosting provider, please ensure the following:
+1. Deploy the compiled `dist/` directory.
+2. Implement a custom proxy server that securely forwards POST requests to `leetcode.com/graphql`.
+3. Ensure the proxy includes the required `Referer: https://leetcode.com` HTTP header to comply with CORS policies.
 
 ---
 
