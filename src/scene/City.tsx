@@ -9,6 +9,7 @@ import Buildings from './Buildings'
 import Landmark from './Landmark'
 import Ground from './Ground'
 import Character from './Character'
+import CityLife from './CityLife'
 
 /** If labels fail (e.g. font can't load), drop them instead of killing the scene. */
 class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -177,6 +178,7 @@ export default function City({ layout }: { layout: CityLayout }) {
       <Buildings layout={layout} />
       <Landmark height={layout.landmarkHeight} />
       <GapLots layout={layout} />
+      <CityLife radius={layout.cityRadius} />
       {walk && <Character layout={layout} />}
       <LabelBoundary>
         <Suspense fallback={null}>

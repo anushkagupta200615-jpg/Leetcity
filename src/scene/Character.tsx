@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
-import type { CityLayout } from '../types'
+import type { CityLayout, Selection } from '../types'
 import { THEMES } from '../lib/themes'
 import { useCityStore } from '../store'
+import { walk as walkState } from '../lib/walkControls'
 
 /** Physical key -> movement intent. WASD and the arrow keys both work. */
 const KEYMAP: Record<string, 'f' | 'b' | 'l' | 'r'> = {
@@ -18,17 +19,16 @@ const KEYMAP: Record<string, 'f' | 'b' | 'l' | 'r'> = {
 }
 
 const tmpDesired = new THREE.Vector3()
+const tmpLook = new THREE.Vector3()
 
-/**
- * A drivable neon avatar for City mode. WASD / arrows move it around the
- * ground plane; the camera trails it at a fixed isometric angle. Walk up to
- * any building and its info card opens ("visiting"); walk away and it closes.
- */
 export default function Character({ layout }: { layout: CityLayout }) {
   const camera = useThree((s) => s.camera)
   const themeKey = useCityStore((s) => s.theme)
   const night = useCityStore((s) => s.night)
+  const firstPerson = useCityStore((s) => s.firstPerson)
   const setSelection = useCityStore((s) => s.setSelection)
+  const setNearBuilding = useCityStore((s) => s.setNearBuilding)
+  const setInterior = useCityStore((s) => s.setInterior)
   const theme = THEMES[themeKey]
 
   const groupRef = useRef<THREE.Group>(null)
@@ -38,12 +38,13 @@ export default function Character({ layout }: { layout: CityLayout }) {
   const pos = useRef(
     new THREE.Vector3(0, 0, Math.min(18, layout.cityRadius * 0.55)),
   )
-  const heading = useRef(Math.PI) // face toward city centre on spawn
+  const heading = useRef(Math.PI)
+  const camHeading = useRef(Math.PI)
   const tRef = useRef(0)
   const lastVisit = useRef(-1)
+  /** the district Selection for the building we're standing next to, if any */
+  const nearRef = useRef<Selection | null>(null)
 
-  // Flatten buildings and remember where each district starts, so a building
-  // index maps back to its district (same scheme as Buildings.tsx clicks).
   const { buildings, districtStarts } = useMemo(() => {
     const b = layout.districts.flatMap((d) => d.buildings)
     const starts: number[] = []
@@ -55,16 +56,38 @@ export default function Character({ layout }: { layout: CityLayout }) {
     return { buildings: b, districtStarts: starts }
   }, [layout])
 
+  // Publish building footprints + radius to the mini-map, once.
+  useEffect(() => {
+    walkState.active = true
+    walkState.radius = layout.cityRadius
+    walkState.buildings = buildings.map((b) => ({ x: b.x, z: b.z, d: b.difficulty }))
+    return () => {
+      walkState.active = false
+      walkState.joyX = 0
+      walkState.joyZ = 0
+      walkState.enterPressed = false
+      setNearBuilding(null)
+    }
+  }, [buildings, layout.cityRadius, setNearBuilding])
+
+  const openInterior = useRef(() => {
+    if (nearRef.current) setInterior(nearRef.current)
+  })
+
   // Keyboard listeners (ignored while typing in the search box).
   useEffect(() => {
     const isTyping = () => {
-      const el = document.activeElement
-      const tag = el?.tagName
+      const tag = document.activeElement?.tagName
       return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA'
     }
     const down = (e: KeyboardEvent) => {
+      if (isTyping()) return
+      if (e.code === 'KeyE' || e.code === 'Enter') {
+        openInterior.current()
+        return
+      }
       const k = KEYMAP[e.code]
-      if (!k || isTyping()) return
+      if (!k) return
       keys.current[k] = true
       if (e.code.startsWith('Arrow')) e.preventDefault()
     }
@@ -94,13 +117,17 @@ export default function Character({ layout }: { layout: CityLayout }) {
     tRef.current += dt
     const k = keys.current
 
-    let mx = (k.r ? 1 : 0) - (k.l ? 1 : 0)
-    let mz = (k.b ? 1 : 0) - (k.f ? 1 : 0) // forward = -Z
-    const moving = mx !== 0 || mz !== 0
+    // keyboard + on-screen joystick, clamped to a unit disc
+    let mx = (k.r ? 1 : 0) - (k.l ? 1 : 0) + walkState.joyX
+    let mz = (k.b ? 1 : 0) - (k.f ? 1 : 0) + walkState.joyZ
+    let mag = Math.hypot(mx, mz)
+    const moving = mag > 0.08
     if (moving) {
-      const len = Math.hypot(mx, mz)
-      mx /= len
-      mz /= len
+      if (mag > 1) {
+        mx /= mag
+        mz /= mag
+        mag = 1
+      }
       pos.current.x += mx * speed * dt
       pos.current.z += mz * speed * dt
       const r = Math.hypot(pos.current.x, pos.current.z)
@@ -111,26 +138,52 @@ export default function Character({ layout }: { layout: CityLayout }) {
       heading.current = Math.atan2(mx, -mz)
     }
 
+    // mobile "Enter" button
+    if (walkState.enterPressed) {
+      walkState.enterPressed = false
+      openInterior.current()
+    }
+
     const bob = moving ? Math.abs(Math.sin(tRef.current * 9)) * 0.14 : 0
     g.position.set(pos.current.x, bob, pos.current.z)
     g.rotation.y = heading.current
 
-    // leg swing
     const swing = moving ? Math.sin(tRef.current * 9) * 0.6 : 0
     if (legL.current) legL.current.rotation.x = swing
     if (legR.current) legR.current.rotation.x = -swing
 
-    // trailing isometric camera
-    tmpDesired.set(
-      pos.current.x + camOffset.x,
-      camOffset.y,
-      pos.current.z + camOffset.z,
-    )
-    // Glide from wherever the orbit camera was into the follow position.
-    camera.position.lerp(tmpDesired, 0.12)
-    camera.lookAt(pos.current.x, 1.4, pos.current.z)
+    // telemetry for the mini-map
+    walkState.x = pos.current.x
+    walkState.z = pos.current.z
+    walkState.heading = heading.current
 
-    // "visit" the nearest building when close enough
+    // camera: first-person eye vs. trailing third-person
+    if (firstPerson) {
+      // smooth the look direction so quick turns don't whip the view
+      let dh = heading.current - camHeading.current
+      dh = Math.atan2(Math.sin(dh), Math.cos(dh))
+      camHeading.current += dh * 0.15
+      const fx = Math.sin(camHeading.current)
+      const fz = -Math.cos(camHeading.current)
+      tmpDesired.set(
+        pos.current.x - fx * 0.2,
+        1.55 + bob,
+        pos.current.z - fz * 0.2,
+      )
+      camera.position.lerp(tmpDesired, 0.4)
+      tmpLook.set(pos.current.x + fx * 12, 1.4, pos.current.z + fz * 12)
+      camera.lookAt(tmpLook)
+    } else {
+      tmpDesired.set(
+        pos.current.x + camOffset.x,
+        camOffset.y,
+        pos.current.z + camOffset.z,
+      )
+      camera.position.lerp(tmpDesired, 0.12)
+      camera.lookAt(pos.current.x, 1.4, pos.current.z)
+    }
+
+    // nearest building -> visit card + enter prompt
     let best = -1
     let bestD = Infinity
     for (let i = 0; i < buildings.length; i++) {
@@ -144,23 +197,29 @@ export default function Character({ layout }: { layout: CityLayout }) {
       }
     }
     const b = best >= 0 ? buildings[best] : null
-    const visitR = b ? Math.max(b.width, b.depth) * 0.5 + 2.6 : 0
+    const visitR = b ? Math.max(b.width, b.depth) * 0.5 + 2.8 : 0
     if (b && Math.sqrt(bestD) <= visitR) {
       if (best !== lastVisit.current) {
         lastVisit.current = best
         let idx = layout.districts.length - 1
         while (idx > 0 && districtStarts[idx] > best) idx--
         const district = layout.districts[idx]
-        setSelection({
+        const sel: Selection = {
           label: district.label,
           level: district.level,
           solved: district.solved,
           difficulty: b.difficulty,
-        })
+          tagSlug: district.tag,
+        }
+        nearRef.current = sel
+        setSelection(sel)
+        setNearBuilding(sel)
       }
     } else if (lastVisit.current !== -1) {
       lastVisit.current = -1
+      nearRef.current = null
       setSelection(null)
+      setNearBuilding(null)
     }
   })
 
@@ -170,8 +229,7 @@ export default function Character({ layout }: { layout: CityLayout }) {
   const emis = night ? 1.5 : 0.5
 
   return (
-    <group ref={groupRef}>
-      {/* soft footprint / glow ring */}
+    <group ref={groupRef} visible={!firstPerson}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <circleGeometry args={[0.75, 28]} />
         <meshBasicMaterial
@@ -182,7 +240,6 @@ export default function Character({ layout }: { layout: CityLayout }) {
         />
       </mesh>
 
-      {/* legs */}
       <mesh ref={legL} position={[-0.16, 0.34, 0]} castShadow>
         <boxGeometry args={[0.18, 0.5, 0.2]} />
         <meshStandardMaterial color={limbColor} roughness={0.6} metalness={0.2} />
@@ -192,7 +249,6 @@ export default function Character({ layout }: { layout: CityLayout }) {
         <meshStandardMaterial color={limbColor} roughness={0.6} metalness={0.2} />
       </mesh>
 
-      {/* torso */}
       <mesh position={[0, 0.9, 0]} castShadow>
         <boxGeometry args={[0.5, 0.62, 0.34]} />
         <meshStandardMaterial
@@ -204,7 +260,6 @@ export default function Character({ layout }: { layout: CityLayout }) {
         />
       </mesh>
 
-      {/* head */}
       <mesh position={[0, 1.42, 0]} castShadow>
         <boxGeometry args={[0.36, 0.36, 0.36]} />
         <meshStandardMaterial
@@ -216,13 +271,11 @@ export default function Character({ layout }: { layout: CityLayout }) {
         />
       </mesh>
 
-      {/* visor — points forward (+Z in local space) so facing is readable */}
       <mesh position={[0, 1.44, 0.19]}>
         <boxGeometry args={[0.28, 0.1, 0.04]} />
         <meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.6} />
       </mesh>
 
-      {/* carried light so the avatar lights the street at night */}
       <pointLight
         position={[0, 1.5, 0]}
         color={glow}

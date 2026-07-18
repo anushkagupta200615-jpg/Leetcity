@@ -11,6 +11,9 @@ import RacePanel from './ui/RacePanel'
 import InsightsPanel from './ui/InsightsPanel'
 import Leaderboard from './ui/Leaderboard'
 import RoadmapPanel from './ui/RoadmapPanel'
+import BuildingInterior from './ui/BuildingInterior'
+import MiniMap from './ui/MiniMap'
+import WalkHud from './ui/WalkHud'
 import './App.css'
 
 export default function App() {
@@ -24,6 +27,8 @@ export default function App() {
   const setRoadmapOpen = useCityStore((s) => s.setRoadmapOpen)
   const walk = useCityStore((s) => s.walk)
   const setWalk = useCityStore((s) => s.setWalk)
+  const setInterior = useCityStore((s) => s.setInterior)
+  const toggleFirstPerson = useCityStore((s) => s.toggleFirstPerson)
   const refreshWorld = useCityStore((s) => s.refreshWorld)
 
   // Pull the shared population once on load (no-op if backend disabled).
@@ -31,10 +36,15 @@ export default function App() {
     void refreshWorld()
   }, [refreshWorld])
 
-  // ESC closes any open card, GitCity-style (and exits walk mode).
+  // ESC closes any open card (and interior/walk); V toggles first-person.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // Inside a building? Step back out first rather than exiting walk.
+        if (useCityStore.getState().interior) {
+          setInterior(null)
+          return
+        }
         setSelection(null)
         setWorldSelection(null)
         setRaceOpen(false)
@@ -42,11 +52,15 @@ export default function App() {
         setLeaderboardOpen(false)
         setRoadmapOpen(false)
         setWalk(false)
+      } else if (e.code === 'KeyV') {
+        const tag = document.activeElement?.tagName
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
+        if (useCityStore.getState().walk) toggleFirstPerson()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen, setRoadmapOpen, setWalk])
+  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen, setRoadmapOpen, setWalk, setInterior, toggleFirstPerson])
 
   return (
     <div className="app">
@@ -66,11 +80,14 @@ export default function App() {
           <InsightsPanel />
           <Leaderboard />
           <RoadmapPanel />
+          {walk && <MiniMap />}
+          {walk && <WalkHud />}
+          <BuildingInterior />
           <div className="hud-hints">
             {walk ? (
               <>
-                W A S D <span>MOVE</span> · WALK UP TO A BUILDING TO{' '}
-                <span>VISIT</span> · ESC <span>EXIT</span>
+                W A S D <span>MOVE</span> · E <span>ENTER</span> · V{' '}
+                <span>1ST-PERSON</span> · ESC <span>EXIT</span>
               </>
             ) : (
               <>

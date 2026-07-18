@@ -26,6 +26,12 @@ interface CityState {
   roadmapOpen: boolean
   /** walk mode: drive a character around your city to visit buildings */
   walk: boolean
+  /** first-person camera while walking (vs. trailing third-person) */
+  firstPerson: boolean
+  /** the building the avatar is currently standing next to (enter prompt) */
+  nearBuilding: Selection | null
+  /** the building whose interior/problem list is open */
+  interior: Selection | null
   load: (username: string) => Promise<void>
   loadDemo: () => void
   setTheme: (theme: ThemeKey) => void
@@ -38,6 +44,9 @@ interface CityState {
   setLeaderboardOpen: (open: boolean) => void
   setRoadmapOpen: (open: boolean) => void
   setWalk: (on: boolean) => void
+  toggleFirstPerson: () => void
+  setNearBuilding: (s: Selection | null) => void
+  setInterior: (s: Selection | null) => void
   /** Pull the real shared-world population from the backend (no-op if disabled). */
   refreshWorld: () => Promise<void>
   /** Show a city directly (used for synthetic citizens; not persisted). */
@@ -61,6 +70,9 @@ export const useCityStore = create<CityState>((set, get) => ({
   leaderboardOpen: false,
   roadmapOpen: false,
   walk: false,
+  firstPerson: false,
+  nearBuilding: null,
+  interior: null,
 
   load: async (username: string) => {
     const name = username.trim()
@@ -120,6 +132,9 @@ export const useCityStore = create<CityState>((set, get) => ({
     set((s) => ({
       mode,
       walk: false, // leaving/entering a mode exits walk (it's city-only)
+      firstPerson: false,
+      nearBuilding: null,
+      interior: null,
       selection: null,
       worldSelection: null,
       // Assemble opponents lazily the first time multi mode is entered.
@@ -138,9 +153,19 @@ export const useCityStore = create<CityState>((set, get) => ({
   setWalk: (on) =>
     set((s) =>
       on
-        ? { walk: true, mode: 'city', selection: null, worldSelection: null }
-        : { ...s, walk: false },
+        ? {
+            walk: true,
+            mode: 'city',
+            selection: null,
+            worldSelection: null,
+            nearBuilding: null,
+            interior: null,
+          }
+        : { ...s, walk: false, nearBuilding: null, interior: null, firstPerson: false },
     ),
+  toggleFirstPerson: () => set((s) => ({ firstPerson: !s.firstPerson })),
+  setNearBuilding: (nearBuilding) => set({ nearBuilding }),
+  setInterior: (interior) => set({ interior }),
   refreshWorld: async () => {
     if (!supabaseEnabled) return
     const profiles = await fetchProfiles()
