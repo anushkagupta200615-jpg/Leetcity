@@ -1,17 +1,20 @@
 import { Component, Suspense, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import * as THREE from 'three'
+import type { ThreeEvent } from '@react-three/fiber'
 import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
 import type { StoredTower } from '../types'
-import { PLOT, RESERVED, ulam, towerHeight } from '../lib/world'
-import { mulberry32 } from '../lib/seed'
+import { PLOT, ulam, towerHeight } from '../lib/world'
+import { buildNpcTowers } from '../lib/roster'
 import { THEMES, shade } from '../lib/themes'
 import { useCityStore } from '../store'
 import Ground from './Ground'
 
 const WORLD_RADIUS = 170
-/** How many spiral plots get procedural "citizen" filler buildings. */
+/** How many spiral plots get citizen buildings. */
 const FILLER_PLOTS = 440
+/** Show floating name labels above this many of the tallest citizens. */
+const LABELLED_CITIZENS = 10
 
 class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -26,65 +29,114 @@ class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean
 const tmpObject = new THREE.Object3D()
 const tmpColor = new THREE.Color()
 
-/** Dim procedural buildings that make the world feel inhabited. */
+/** Dominant-difficulty facade color for a tower's stats. */
+function towerColor(
+  t: StoredTower,
+  theme: (typeof THEMES)[keyof typeof THEMES],
+  night: boolean,
+): THREE.Color {
+  const total = Math.max(1, t.all)
+  const c = new THREE.Color(0, 0, 0)
+  c.add(new THREE.Color(theme.easy).multiplyScalar(t.easy / total))
+  c.add(new THREE.Color(theme.medium).multiplyScalar(t.medium / total))
+  c.add(new THREE.Color(theme.hard).multiplyScalar(t.hard / total))
+  const dominant =
+    t.hard >= t.medium && t.hard >= t.easy
+      ? theme.hard
+      : t.medium >= t.easy
+        ? theme.medium
+        : theme.easy
+  c.lerp(new THREE.Color(dominant), 0.45)
+  if (night) c.multiplyScalar(0.7)
+  if ((t.recent ?? 1) === 0) c.multiplyScalar(0.4) // inactive = dark
+  return c
+}
+
+/**
+ * Every free plot in the world is a clickable citizen with a (synthetic)
+ * profile. Rendered as one InstancedMesh for performance; clicking a building
+ * opens that citizen's profile card. The tallest ones are the strongest solvers.
+ */
 function Citizens({ occupied }: { occupied: Set<number> }) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const themeKey = useCityStore((s) => s.theme)
   const night = useCityStore((s) => s.night)
+  const setWorldSelection = useCityStore((s) => s.setWorldSelection)
   const theme = THEMES[themeKey]
 
-  const blocks = useMemo(() => {
-    const out: Array<{ x: number; z: number; w: number; h: number; d: number; tint: number }> = []
-    for (let i = RESERVED; i < RESERVED + FILLER_PLOTS; i++) {
-      if (occupied.has(i)) continue
-      const rand = mulberry32(i * 2654435761)
-      if (rand() < 0.42) continue // leave empty lots
-      const [px, pz] = ulam(i)
-      const cx = px * PLOT
-      const cz = pz * PLOT
-      const count = 1 + Math.floor(rand() * 3)
-      for (let b = 0; b < count; b++) {
-        out.push({
-          x: cx + (rand() - 0.5) * (PLOT * 0.5),
-          z: cz + (rand() - 0.5) * (PLOT * 0.5),
-          w: 1.2 + rand() * 1.8,
-          h: 1 + rand() * 4.5,
-          d: 1.2 + rand() * 1.8,
-          tint: 0.75 + rand() * 0.5,
-        })
-      }
-    }
-    return out
-  }, [occupied])
+  const npcs = useMemo(
+    () => buildNpcTowers(occupied, FILLER_PLOTS),
+    [occupied],
+  )
+
+  const labelled = useMemo(
+    () =>
+      [...npcs]
+        .sort((a, b) => b.height - a.height)
+        .slice(0, LABELLED_CITIZENS),
+    [npcs],
+  )
 
   useLayoutEffect(() => {
     const mesh = meshRef.current
     if (!mesh) return
-    const base = new THREE.Color(shade(theme.grid2, night ? 0.8 : 1.5))
-    blocks.forEach((b, i) => {
-      tmpObject.position.set(b.x, b.h / 2, b.z)
-      tmpObject.scale.set(b.w, b.h, b.d)
+    npcs.forEach((n, i) => {
+      tmpObject.position.set(n.x, n.height / 2, n.z)
+      tmpObject.scale.set(2.4, n.height, 2.4)
       tmpObject.rotation.set(0, 0, 0)
       tmpObject.updateMatrix()
       mesh.setMatrixAt(i, tmpObject.matrix)
-      tmpColor.copy(base).multiplyScalar(b.tint)
+      tmpColor.copy(towerColor(n.tower, theme, night)).multiplyScalar(0.85)
       mesh.setColorAt(i, tmpColor)
     })
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     mesh.computeBoundingSphere()
-  }, [blocks, theme, night])
+  }, [npcs, theme, night])
+
+  const onClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation()
+    if (e.instanceId === undefined) return
+    setWorldSelection(npcs[e.instanceId].tower)
+  }
 
   return (
-    <instancedMesh
-      key={blocks.length}
-      ref={meshRef}
-      args={[undefined, undefined, blocks.length]}
-      receiveShadow
-    >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial roughness={0.85} metalness={0.1} />
-    </instancedMesh>
+    <group>
+      <instancedMesh
+        key={npcs.length}
+        ref={meshRef}
+        args={[undefined, undefined, npcs.length]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+        onClick={onClick}
+        onPointerOver={() => (document.body.style.cursor = 'pointer')}
+        onPointerOut={() => (document.body.style.cursor = 'default')}
+      >
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.55} metalness={0.25} />
+      </instancedMesh>
+
+      {labelled.map((n) => (
+        <LabelBoundary key={n.tower.username}>
+          <Suspense fallback={null}>
+            <Billboard position={[n.x, n.height + 2, n.z]}>
+              <Text
+                font="/fonts/label.ttf"
+                fontSize={1.05}
+                color={theme.label}
+                anchorX="center"
+                anchorY="bottom"
+                outlineWidth={0.04}
+                outlineColor={theme.bgTop}
+              >
+                {n.tower.username}
+              </Text>
+            </Billboard>
+          </Suspense>
+        </LabelBoundary>
+      ))}
+    </group>
   )
 }
 

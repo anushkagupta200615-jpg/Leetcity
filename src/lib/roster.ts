@@ -1,6 +1,8 @@
-import type { CityData, TagLevel } from '../types'
+import type { CityData, StoredTower, TagLevel } from '../types'
 import { buildCityLayout } from './cityLayout'
 import { hashString, mulberry32, rngFor } from './seed'
+import { recentActivity } from './leetcode'
+import { PLOT, RESERVED, ulam, towerHeight } from './world'
 import type { CityLayout } from '../types'
 
 /**
@@ -148,6 +150,72 @@ export function getRoster(currentUsername: string, count = 4): CityData[] {
     if (picked.length >= count) break
   }
   return picked
+}
+
+/* ------------------------------------------------------------------ */
+/* NPC citizens: every filler plot in World mode is a clickable user.   */
+/* ------------------------------------------------------------------ */
+
+const NPC_HANDLES = [
+  'byte', 'algo', 'nova', 'quokka', 'pointer', 'lambda', 'recur', 'heapz',
+  'dijkstra', 'kadane', 'trie', 'segtree', 'mergez', 'binary', 'greedy',
+  'dpwiz', 'graphy', 'stackz', 'queuex', 'hashly', 'kmp', 'floyd', 'bellman',
+  'tarjan', 'kruskal', 'prim', 'fenwick', 'sparse', 'mono', 'sliding',
+  'twosum', 'anagram', 'palindra', 'matrixe', 'bitwise', 'modpow', 'sieve',
+  'gcdlord', 'combi', 'permu', 'backtrk', 'memoize', 'tabu', 'topo', 'bfsking',
+  'dfsqueen', 'unionf', 'rollhash', 'manacher', 'zfunc',
+]
+
+/** Deterministic handle for a plot, e.g. "dijkstra472". */
+export function npcNameForPlot(plot: number): string {
+  const r = mulberry32((plot * 2654435761) >>> 0)
+  const base = NPC_HANDLES[Math.floor(r() * NPC_HANDLES.length)]
+  const suffix = 100 + Math.floor(r() * 900)
+  return `${base}${suffix}`
+}
+
+/** A citizen tower: synthetic stats derived from the (deterministic) handle. */
+export function syntheticTower(username: string, plot: number): StoredTower {
+  const c = syntheticCityData(username)
+  return {
+    username,
+    easy: c.totals.easy,
+    medium: c.totals.medium,
+    hard: c.totals.hard,
+    all: c.totals.all,
+    rating: c.contest?.rating ?? 0,
+    plot,
+    savedAt: c.fetchedAt,
+    recent: recentActivity(c.calendar, 30),
+    synthetic: true,
+  }
+}
+
+export interface NpcTower {
+  tower: StoredTower
+  x: number
+  z: number
+  height: number
+}
+
+/**
+ * Populate the world's empty plots with clickable citizens, so every building
+ * belongs to someone whose profile you can open. Heights scale with their
+ * solve score, so the tallest towers really are the strongest solvers.
+ */
+export function buildNpcTowers(occupied: Set<number>, plots = 440): NpcTower[] {
+  const out: NpcTower[] = []
+  for (let i = RESERVED; i < RESERVED + plots; i++) {
+    if (occupied.has(i)) continue
+    const keep = mulberry32((i * 40503) >>> 0)
+    if (keep() < 0.45) continue // some plots stay vacant
+    const name = npcNameForPlot(i)
+    const tower = syntheticTower(name, i)
+    if (tower.all < 1) continue
+    const [px, pz] = ulam(i)
+    out.push({ tower, x: px * PLOT, z: pz * PLOT, height: towerHeight(tower) })
+  }
+  return out
 }
 
 /* ------------------------------------------------------------------ */

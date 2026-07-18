@@ -1,6 +1,7 @@
 import { useCityStore } from '../store'
 import { trophiesFor } from '../lib/trophies'
 import { cityRank } from '../lib/world'
+import { syntheticCityData } from '../lib/roster'
 
 /** GitCity-style card shown when a tower is clicked in world view. */
 export default function WorldPanel() {
@@ -9,6 +10,7 @@ export default function WorldPanel() {
   const setWorldSelection = useCityStore((s) => s.setWorldSelection)
   const setMode = useCityStore((s) => s.setMode)
   const load = useCityStore((s) => s.load)
+  const enterCity = useCityStore((s) => s.enterCity)
   const loading = useCityStore((s) => s.loading)
   if (!tower) return null
 
@@ -21,6 +23,11 @@ export default function WorldPanel() {
   })
 
   const visit = async () => {
+    if (tower.synthetic) {
+      // Citizen — build their city from the same deterministic synthetic seed.
+      enterCity(syntheticCityData(tower.username))
+      return
+    }
     await load(tower.username)
     setMode('city')
   }
@@ -40,7 +47,7 @@ export default function WorldPanel() {
         <div>
           <div className="stats-name">{tower.username.toUpperCase()}</div>
           <div className="stats-sub">
-            PLOT #{tower.plot}
+            {tower.synthetic ? 'CITIZEN' : `PLOT #${tower.plot}`}
             {(tower.recent ?? 1) === 0 && ' · 💤 INACTIVE'}
           </div>
         </div>
@@ -86,14 +93,16 @@ export default function WorldPanel() {
         >
           {loading ? 'BUILDING…' : '◆ EXPLORE CITY'}
         </button>
-        <a
-          className="pixel-button"
-          href={`https://leetcode.com/u/${tower.username}/`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          PROFILE ↗
-        </a>
+        {!tower.synthetic && (
+          <a
+            className="pixel-button"
+            href={`https://leetcode.com/u/${tower.username}/`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            PROFILE ↗
+          </a>
+        )}
       </div>
     </div>
   )

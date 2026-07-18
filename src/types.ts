@@ -67,6 +67,8 @@ export interface StoredTower {
   savedAt: string
   /** submissions in the last 30 days at save time (undefined = legacy entry) */
   recent?: number
+  /** true for procedurally-generated citizens (not a real searched user) */
+  synthetic?: boolean
 }
 
 export interface Selection {

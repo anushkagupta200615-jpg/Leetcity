@@ -27,6 +27,8 @@ interface CityState {
   setSelection: (selection: Selection | null) => void
   setWorldSelection: (tower: StoredTower | null) => void
   setRaceOpen: (open: boolean) => void
+  /** Show a city directly (used for synthetic citizens; not persisted). */
+  enterCity: (data: CityData) => void
 }
 
 export const useCityStore = create<CityState>((set) => ({
@@ -106,4 +108,6 @@ export const useCityStore = create<CityState>((set) => ({
   setSelection: (selection) => set({ selection }),
   setWorldSelection: (tower) => set({ worldSelection: tower }),
   setRaceOpen: (open) => set({ raceOpen: open }),
+  enterCity: (data) =>
+    set({ data, mode: 'city', selection: null, worldSelection: null }),
 }))
