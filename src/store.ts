@@ -24,6 +24,8 @@ interface CityState {
   insightsOpen: boolean
   leaderboardOpen: boolean
   roadmapOpen: boolean
+  /** walk mode: drive a character around your city to visit buildings */
+  walk: boolean
   load: (username: string) => Promise<void>
   loadDemo: () => void
   setTheme: (theme: ThemeKey) => void
@@ -35,6 +37,7 @@ interface CityState {
   setInsightsOpen: (open: boolean) => void
   setLeaderboardOpen: (open: boolean) => void
   setRoadmapOpen: (open: boolean) => void
+  setWalk: (on: boolean) => void
   /** Pull the real shared-world population from the backend (no-op if disabled). */
   refreshWorld: () => Promise<void>
   /** Show a city directly (used for synthetic citizens; not persisted). */
@@ -57,6 +60,7 @@ export const useCityStore = create<CityState>((set, get) => ({
   insightsOpen: false,
   leaderboardOpen: false,
   roadmapOpen: false,
+  walk: false,
 
   load: async (username: string) => {
     const name = username.trim()
@@ -115,6 +119,7 @@ export const useCityStore = create<CityState>((set, get) => ({
     if (mode === 'world' && supabaseEnabled) void get().refreshWorld()
     set((s) => ({
       mode,
+      walk: false, // leaving/entering a mode exits walk (it's city-only)
       selection: null,
       worldSelection: null,
       // Assemble opponents lazily the first time multi mode is entered.
@@ -130,6 +135,12 @@ export const useCityStore = create<CityState>((set, get) => ({
   setInsightsOpen: (open) => set({ insightsOpen: open }),
   setLeaderboardOpen: (open) => set({ leaderboardOpen: open }),
   setRoadmapOpen: (open) => set({ roadmapOpen: open }),
+  setWalk: (on) =>
+    set((s) =>
+      on
+        ? { walk: true, mode: 'city', selection: null, worldSelection: null }
+        : { ...s, walk: false },
+    ),
   refreshWorld: async () => {
     if (!supabaseEnabled) return
     const profiles = await fetchProfiles()

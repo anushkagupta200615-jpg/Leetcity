@@ -38,6 +38,7 @@ export default function Scene({ data }: { data: CityData }) {
   const themeKey = useCityStore((s) => s.theme)
   const night = useCityStore((s) => s.night)
   const mode = useCityStore((s) => s.mode)
+  const walk = useCityStore((s) => s.walk)
   const roster = useCityStore((s) => s.roster)
   const worldSelection = useCityStore((s) => s.worldSelection)
   const setSelection = useCityStore((s) => s.setSelection)
@@ -147,22 +148,26 @@ export default function Scene({ data }: { data: CityData }) {
         <Vignette eskil={false} offset={0.22} darkness={0.62} />
       </EffectComposer>
 
-      <OrbitControls
-        autoRotate={!isWorld && !isMulti}
-        autoRotateSpeed={0.55}
-        enableDamping
-        dampingFactor={0.08}
-        maxPolarAngle={Math.PI / 2.15}
-        minDistance={8}
-        maxDistance={
-          isWorld
-            ? 700
-            : isMulti && hood
-              ? hood.radius * 3
-              : Math.max(180, layout.cityRadius * 4)
-        }
-        target={target}
-      />
+      {/* Walk mode hands the camera to the character's follow-cam, so
+          OrbitControls must not be mounted (its per-frame update would fight it). */}
+      {!walk && (
+        <OrbitControls
+          autoRotate={!isWorld && !isMulti}
+          autoRotateSpeed={0.55}
+          enableDamping
+          dampingFactor={0.08}
+          maxPolarAngle={Math.PI / 2.15}
+          minDistance={8}
+          maxDistance={
+            isWorld
+              ? 700
+              : isMulti && hood
+                ? hood.radius * 3
+                : Math.max(180, layout.cityRadius * 4)
+          }
+          target={target}
+        />
+      )}
     </Canvas>
   )
 }

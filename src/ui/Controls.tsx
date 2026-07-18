@@ -12,9 +12,11 @@ export default function Controls() {
   const theme = useCityStore((s) => s.theme)
   const night = useCityStore((s) => s.night)
   const mode = useCityStore((s) => s.mode)
+  const walk = useCityStore((s) => s.walk)
   const setTheme = useCityStore((s) => s.setTheme)
   const toggleNight = useCityStore((s) => s.toggleNight)
   const setMode = useCityStore((s) => s.setMode)
+  const setWalk = useCityStore((s) => s.setWalk)
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
   const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
   const setLeaderboardOpen = useCityStore((s) => s.setLeaderboardOpen)
@@ -68,6 +70,14 @@ export default function Controls() {
         title="DSA race mode"
       >
         🏁 Race
+      </button>
+      <button
+        type="button"
+        className={`walk-btn ${walk ? 'active' : ''}`}
+        onClick={() => setWalk(!walk)}
+        title="Walk mode: drive a character around your city (WASD / arrows)"
+      >
+        🚶 {walk ? 'Exit' : 'Walk'}
       </button>
       <select
         value={theme}

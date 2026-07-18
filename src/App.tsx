@@ -22,6 +22,8 @@ export default function App() {
   const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
   const setLeaderboardOpen = useCityStore((s) => s.setLeaderboardOpen)
   const setRoadmapOpen = useCityStore((s) => s.setRoadmapOpen)
+  const walk = useCityStore((s) => s.walk)
+  const setWalk = useCityStore((s) => s.setWalk)
   const refreshWorld = useCityStore((s) => s.refreshWorld)
 
   // Pull the shared population once on load (no-op if backend disabled).
@@ -29,7 +31,7 @@ export default function App() {
     void refreshWorld()
   }, [refreshWorld])
 
-  // ESC closes any open card, GitCity-style.
+  // ESC closes any open card, GitCity-style (and exits walk mode).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -39,11 +41,12 @@ export default function App() {
         setInsightsOpen(false)
         setLeaderboardOpen(false)
         setRoadmapOpen(false)
+        setWalk(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen, setRoadmapOpen])
+  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen, setRoadmapOpen, setWalk])
 
   return (
     <div className="app">
@@ -64,8 +67,17 @@ export default function App() {
           <Leaderboard />
           <RoadmapPanel />
           <div className="hud-hints">
-            DRAG <span>ORBIT</span> · SCROLL <span>ZOOM</span> · CLICK{' '}
-            <span>INSPECT</span> · ESC <span>CLOSE</span>
+            {walk ? (
+              <>
+                W A S D <span>MOVE</span> · WALK UP TO A BUILDING TO{' '}
+                <span>VISIT</span> · ESC <span>EXIT</span>
+              </>
+            ) : (
+              <>
+                DRAG <span>ORBIT</span> · SCROLL <span>ZOOM</span> · CLICK{' '}
+                <span>INSPECT</span> · ESC <span>CLOSE</span>
+              </>
+            )}
           </div>
         </div>
       ) : (

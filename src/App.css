@@ -620,6 +620,15 @@ body,
   color: var(--hard) !important;
 }
 
+.walk-btn {
+  color: #7dffb0 !important;
+}
+
+.walk-btn.active {
+  color: #14161c !important;
+  background: #7dffb0 !important;
+}
+
 /* ---------- share button ---------- */
 
 .share-button {

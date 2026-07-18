@@ -8,6 +8,7 @@ import { useCityStore } from '../store'
 import Buildings from './Buildings'
 import Landmark from './Landmark'
 import Ground from './Ground'
+import Character from './Character'
 
 /** If labels fail (e.g. font can't load), drop them instead of killing the scene. */
 class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -168,6 +169,7 @@ function GapLots({ layout }: { layout: CityLayout }) {
 }
 
 export default function City({ layout }: { layout: CityLayout }) {
+  const walk = useCityStore((s) => s.walk)
   return (
     <group>
       <Ground radius={layout.cityRadius} />
@@ -175,6 +177,7 @@ export default function City({ layout }: { layout: CityLayout }) {
       <Buildings layout={layout} />
       <Landmark height={layout.landmarkHeight} />
       <GapLots layout={layout} />
+      {walk && <Character layout={layout} />}
       <LabelBoundary>
         <Suspense fallback={null}>
           <DistrictLabels layout={layout} />
