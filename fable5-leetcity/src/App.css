@@ -1,0 +1,294 @@
+:root {
+  --bg: #0b0d12;
+  --panel: rgba(17, 21, 30, 0.88);
+  --border: #262d40;
+  --text: #e6e9f0;
+  --muted: #8b95ab;
+  --accent: #ffa116;
+  --easy: #00b8a3;
+  --medium: #ffc01e;
+  --hard: #ff375f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.landing {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 120%, #1a2136 0%, transparent 60%),
+    var(--bg);
+}
+
+/* ---------- username form ---------- */
+
+.username-form {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  z-index: 10;
+}
+
+.username-form.hero {
+  inset: 0;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.username-form.hero > * {
+  pointer-events: auto;
+}
+
+.username-form.docked {
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.hero-copy {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.hero-copy h1 {
+  font-size: 56px;
+  margin: 0;
+  letter-spacing: -1px;
+  background: linear-gradient(120deg, var(--easy), var(--medium), var(--hard));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-copy p {
+  color: var(--muted);
+  margin: 8px 0 0;
+  font-size: 17px;
+}
+
+.username-form form {
+  display: flex;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  backdrop-filter: blur(8px);
+}
+
+.username-form input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 15px;
+  padding: 8px 10px;
+  width: 240px;
+}
+
+.username-form button[type='submit'] {
+  background: var(--accent);
+  color: #14161c;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.username-form button[type='submit']:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.demo-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.demo-link:hover {
+  color: var(--text);
+}
+
+.error {
+  background: rgba(255, 55, 95, 0.12);
+  border: 1px solid rgba(255, 55, 95, 0.4);
+  color: #ff8fa8;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  max-width: 380px;
+  text-align: center;
+}
+
+/* ---------- stats overlay ---------- */
+
+.stats-overlay {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 10;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-width: 240px;
+  backdrop-filter: blur(8px);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.stats-header img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.stats-name {
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.stats-sub {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.stats-grid {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.stat {
+  flex: 1;
+  border-radius: 9px;
+  padding: 7px 4px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.stat span {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat.easy span {
+  color: var(--easy);
+}
+
+.stat.medium span {
+  color: var(--medium);
+}
+
+.stat.hard span {
+  color: var(--hard);
+}
+
+.stats-footer {
+  color: var(--muted);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ---------- share button ---------- */
+
+.share-button {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.15s;
+}
+
+.share-button:hover {
+  border-color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .hero-copy h1 {
+    font-size: 40px;
+  }
+
+  .username-form input {
+    width: 150px;
+  }
+
+  .stats-overlay {
+    left: 10px;
+    bottom: 10px;
+    min-width: 0;
+    padding: 10px 12px;
+  }
+
+  .share-button {
+    right: 10px;
+    bottom: 10px;
+  }
+}
