@@ -982,3 +982,57 @@ body,
     top: 66px;
   }
 }
+
+/* ---------- mobile header: stack search + controls so nothing overlaps ---------- */
+@media (max-width: 640px) {
+  .hud-logo {
+    display: none;
+  }
+
+  /* search box: full-width top row */
+  .username-form.docked {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    transform: none;
+    width: auto;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .username-form.docked form {
+    width: 100%;
+  }
+
+  .username-form.docked input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  /* controls: their own row below, swipeable if they overflow */
+  .controls {
+    top: 60px;
+    left: 0;
+    right: 0;
+    padding: 0 8px;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .controls::-webkit-scrollbar {
+    display: none;
+  }
+
+  .controls > * {
+    flex-shrink: 0;
+  }
+
+  /* keep profile/inspect panels clear of the two-row header */
+  .profile-card,
+  .info-panel {
+    top: 108px;
+  }
+}
