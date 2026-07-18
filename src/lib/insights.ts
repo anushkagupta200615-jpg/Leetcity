@@ -1,0 +1,186 @@
+import type { CityData } from '../types'
+import { recentActivity } from './leetcode'
+import { levelFor } from './level'
+import {
+  PROBLEMS_BY_TOPIC,
+  COMPANY_PROFILES,
+  COVERED_AT,
+  type Problem,
+} from './problems'
+
+/** Map of topic label → solved count for the loaded user. */
+function solvedByTopic(data: CityData): Map<string, number> {
+  return new Map(data.topics.map((t) => [t.label, t.solved]))
+}
+
+/* ------------------------------------------------------------------ */
+/* Pace projection                                                     */
+/* ------------------------------------------------------------------ */
+
+export interface Pace {
+  perWeek: number
+  active: boolean
+  target: number
+  weeksToTarget: number | null
+  targetLabel: string
+}
+
+export function paceProjection(data: CityData): Pace {
+  // Submissions in the last 30 days × acceptance ≈ recent accepted solves.
+  const recent = recentActivity(data.calendar, 30)
+  const acc = data.acceptance > 0 ? data.acceptance / 100 : 0.5
+  const perWeek = Math.max(0, (recent * acc) / 30) * 7
+
+  // Next meaningful milestone: next level threshold, else next hundred.
+  const lvl = levelFor(data.totals.all)
+  const nextHundred = Math.ceil((data.totals.all + 1) / 100) * 100
+  const target = lvl.nextAt && lvl.nextAt > data.totals.all ? lvl.nextAt : nextHundred
+  const remaining = target - data.totals.all
+  const weeksToTarget = perWeek > 0.1 ? remaining / perWeek : null
+
+  return {
+    perWeek: Math.round(perWeek * 10) / 10,
+    active: perWeek > 0.1,
+    target,
+    weeksToTarget: weeksToTarget ? Math.ceil(weeksToTarget) : null,
+    targetLabel:
+      lvl.nextAt && lvl.nextAt === target ? `LV ${lvl.level + 1}` : `${target} solved`,
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Gap recommendations                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface GapRec {
+  topic: string
+  solved: number
+  problems: Problem[]
+}
+
+const DIFF_ORDER = { Easy: 0, Medium: 1, Hard: 2 }
+
+export function gapRecommendations(data: CityData, maxTopics = 4): GapRec[] {
+  const solved = solvedByTopic(data)
+  const gaps: GapRec[] = []
+  for (const topic of Object.keys(PROBLEMS_BY_TOPIC)) {
+    const n = solved.get(topic) ?? 0
+    if (n >= COVERED_AT) continue // already comfortable here
+    const problems = [...PROBLEMS_BY_TOPIC[topic]]
+      .sort((a, b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty])
+      .slice(0, 3)
+    gaps.push({ topic, solved: n, problems })
+  }
+  // Weakest topics first.
+  return gaps.sort((a, b) => a.solved - b.solved).slice(0, maxTopics)
+}
+
+/* ------------------------------------------------------------------ */
+/* Company readiness                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface Readiness {
+  company: string
+  score: number // 0..100
+  focus: Array<{ topic: string; solved: number }>
+}
+
+export function companyReadiness(data: CityData, company: string): Readiness {
+  const weights = COMPANY_PROFILES[company] ?? {}
+  const solved = solvedByTopic(data)
+  let weightSum = 0
+  let covered = 0
+  const perTopic: Array<{ topic: string; solved: number; weight: number; cov: number }> = []
+  for (const [topic, w] of Object.entries(weights)) {
+    const n = solved.get(topic) ?? 0
+    const cov = Math.min(1, n / COVERED_AT)
+    weightSum += w
+    covered += w * cov
+    perTopic.push({ topic, solved: n, weight: w, cov })
+  }
+  const score = weightSum > 0 ? Math.round((covered / weightSum) * 100) : 0
+  // Focus = highest-weight, lowest-coverage topics.
+  const focus = perTopic
+    .filter((t) => t.cov < 1)
+    .sort((a, b) => b.weight * (1 - b.cov) - a.weight * (1 - a.cov))
+    .slice(0, 3)
+    .map((t) => ({ topic: t.topic, solved: t.solved }))
+  return { company, score, focus }
+}
+
+/* ------------------------------------------------------------------ */
+/* Estimated standing + per-topic strength                             */
+/* ------------------------------------------------------------------ */
+
+export interface Standing {
+  percentile: number // estimated, 0..100 (top X%)
+  strengths: string[]
+  weaknesses: string[]
+}
+
+/** Rough, transparent estimate — more solved + higher rating ⇒ higher standing. */
+export function standing(data: CityData): Standing {
+  const solvedScore = 1 / (1 + Math.exp(-(data.totals.all - 350) / 220)) // logistic on solved
+  const ratingScore = data.contest
+    ? 1 / (1 + Math.exp(-(data.contest.rating - 1600) / 260))
+    : solvedScore
+  const combined = data.contest ? solvedScore * 0.6 + ratingScore * 0.4 : solvedScore
+  const percentile = Math.max(1, Math.min(99, Math.round(combined * 100)))
+
+  // Internal balance: which topics the user is over/under-invested in.
+  const topics = data.topics.filter((t) => t.solved > 0)
+  const avg = topics.length
+    ? topics.reduce((s, t) => s + t.solved, 0) / topics.length
+    : 0
+  const strengths = [...topics]
+    .sort((a, b) => b.solved - a.solved)
+    .slice(0, 3)
+    .map((t) => t.label)
+  // Under-invested core topics (few solves relative to the user's own average).
+  const weaknesses = Object.keys(PROBLEMS_BY_TOPIC)
+    .map((label) => ({ label, solved: solvedByTopic(data).get(label) ?? 0 }))
+    .filter((t) => t.solved < Math.max(2, avg * 0.4))
+    .sort((a, b) => a.solved - b.solved)
+    .slice(0, 3)
+    .map((t) => t.label)
+
+  return { percentile, strengths, weaknesses }
+}
+
+/* ------------------------------------------------------------------ */
+/* "LeetCode Wrapped" story                                            */
+/* ------------------------------------------------------------------ */
+
+export function wrappedStory(data: CityData): string[] {
+  const lvl = levelFor(data.totals.all)
+  const { easy, medium, hard, all } = data.totals
+  const dominant =
+    hard >= medium && hard >= easy ? 'Hard' : medium >= easy ? 'Medium' : 'Easy'
+  const top = data.topics.slice(0, 3).map((t) => t.label)
+  const recent = recentActivity(data.calendar, 30)
+
+  const lines: string[] = []
+  lines.push(`You've built a city of ${all} solved problems — a Level ${lvl.level} ${lvl.name}.`)
+  lines.push(
+    `Your skyline leans ${dominant}: ${easy} Easy · ${medium} Medium · ${hard} Hard.`,
+  )
+  if (top.length) {
+    lines.push(`Your tallest districts are ${top.join(', ')} — that's your home turf.`)
+  }
+  if (data.contest) {
+    lines.push(
+      `In the arena you're rated ${data.contest.rating}, top ${data.contest.topPercentage.toFixed(1)}% of contestants.`,
+    )
+  }
+  if (data.streak > 0) {
+    lines.push(`🔥 A ${data.streak}-day streak keeps the lights on.`)
+  }
+  lines.push(
+    recent > 0
+      ? `${recent} submissions in the last 30 days — the city is still growing.`
+      : `The city's been quiet lately — time to break ground again.`,
+  )
+  const weak = standing(data).weaknesses[0]
+  if (weak) lines.push(`The empty lot to watch: ${weak}. Build there next.`)
+  return lines
+}

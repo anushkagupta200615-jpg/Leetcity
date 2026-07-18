@@ -45,6 +45,39 @@ async function gql(query: string, variables: Record<string, unknown>) {
   return json.data
 }
 
+const RECENT_AC_QUERY = `
+query recentAc($username: String!, $limit: Int!) {
+  recentAcSubmissionList(username: $username, limit: $limit) {
+    titleSlug
+    timestamp
+  }
+}
+`
+
+export interface AcSubmission {
+  titleSlug: string
+  timestamp: number
+}
+
+/**
+ * A user's most recent *accepted* submissions. Used to verify race solves
+ * against LeetCode — no honor system.
+ */
+export async function fetchRecentAc(
+  username: string,
+  limit = 20,
+): Promise<AcSubmission[]> {
+  const data = await gql(RECENT_AC_QUERY, { username, limit })
+  const list = (data?.recentAcSubmissionList ?? []) as Array<{
+    titleSlug: string
+    timestamp: string | number
+  }>
+  return list.map((s) => ({
+    titleSlug: s.titleSlug,
+    timestamp: Number(s.timestamp),
+  }))
+}
+
 function collectTags(raw: RawTag[] | undefined, level: TagLevel): TopicStat[] {
   return (raw ?? [])
     .filter((t) => t.problemsSolved > 0)

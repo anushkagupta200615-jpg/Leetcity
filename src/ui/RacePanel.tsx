@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCityStore } from '../store'
+import { fetchRecentAc } from '../lib/leetcode'
 import {
   botOpponents,
   loadTotals,
@@ -14,11 +15,15 @@ import {
 export default function RacePanel() {
   const open = useCityStore((s) => s.raceOpen)
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
-  const you = useCityStore((s) => s.data?.username) || 'you'
+  const data = useCityStore((s) => s.data)
+  const you = data?.username || 'you'
+  const isDemo = !data || data.isDemo === true
 
   const [round, setRound] = useState(0)
   const [solvers, setSolvers] = useState<Solver[]>([])
   const [totals, setTotals] = useState<Record<string, number>>(() => loadTotals())
+  const [verifying, setVerifying] = useState(false)
+  const [msg, setMsg] = useState<string>('')
 
   const problem = useMemo(() => pickProblem(round), [round])
   const bots = useMemo(() => botOpponents(you), [you])
@@ -28,41 +33,39 @@ export default function RacePanel() {
 
   const youSolved = solvers.some((s) => s.isYou)
 
-  const addSolver = useCallback(
-    (name: string, isYou: boolean) => {
-      setSolvers((prev) => {
-        if (prev.some((s) => s.name.toLowerCase() === name.toLowerCase())) return prev
-        const order = prev.length + 1
-        const points = pointsForOrder(order)
-        const at = Date.now() - startRef.current
-        setTotals((t) => {
-          const next = { ...t, [name]: (t[name] ?? 0) + points }
-          saveTotals(next)
-          return next
-        })
-        return [...prev, { name, order, points, at, isYou }]
+  const addSolver = useCallback((name: string, isYou: boolean) => {
+    setSolvers((prev) => {
+      if (prev.some((s) => s.name.toLowerCase() === name.toLowerCase())) return prev
+      const order = prev.length + 1
+      const points = pointsForOrder(order)
+      const at = Date.now() - startRef.current
+      setTotals((t) => {
+        const next = { ...t, [name]: (t[name] ?? 0) + points }
+        saveTotals(next)
+        return next
       })
-    },
-    [],
-  )
+      return [...prev, { name, order, points, at, isYou }]
+    })
+  }, [])
 
-  // Set up each round: reset, schedule bot solves, listen for cross-tab solves.
+  // Set up each round: reset, schedule pace bots, listen for cross-tab solves.
   useEffect(() => {
     if (!open) return
     setSolvers([])
+    setMsg('')
     startRef.current = Date.now()
 
     timersRef.current.forEach(clearTimeout)
     timersRef.current = bots.map((bot) =>
-      window.setTimeout(() => addSolver(bot, false), 2200 + Math.random() * 14000),
+      window.setTimeout(() => addSolver(bot, false), 3000 + Math.random() * 16000),
     )
 
     const ch = makeChannel()
     channelRef.current = ch
     if (ch) {
       ch.onmessage = (e: MessageEvent<RaceMessage>) => {
-        const msg = e.data
-        if (msg?.type === 'solved' && msg.round === round) addSolver(msg.name, false)
+        const m = e.data
+        if (m?.type === 'solved' && m.round === round) addSolver(m.name, false)
       }
     }
 
@@ -76,15 +79,37 @@ export default function RacePanel() {
 
   if (!open) return null
 
-  const markSolved = () => {
-    if (youSolved) return
-    addSolver(you, true)
-    channelRef.current?.postMessage({
-      type: 'solved',
-      round,
-      name: you,
-      at: Date.now() - startRef.current,
-    } satisfies RaceMessage)
+  // Real verification: check the user's recent Accepted submissions on LeetCode.
+  const verifySolve = async () => {
+    if (youSolved || verifying) return
+    if (isDemo) {
+      setMsg('Load your real LeetCode username first — demo solves can’t be verified.')
+      return
+    }
+    setVerifying(true)
+    setMsg('Checking your LeetCode submissions…')
+    try {
+      const recent = await fetchRecentAc(you, 20)
+      const solved = recent.some((s) => s.titleSlug === problem.slug)
+      if (solved) {
+        addSolver(you, true)
+        setMsg('✓ Verified on LeetCode — points awarded!')
+        channelRef.current?.postMessage({
+          type: 'solved',
+          round,
+          name: you,
+          at: Date.now() - startRef.current,
+        } satisfies RaceMessage)
+      } else {
+        setMsg(
+          `No accepted submission for “${problem.title}” found yet. Solve it on LeetCode (must show Accepted), then verify.`,
+        )
+      }
+    } catch {
+      setMsg('Couldn’t reach LeetCode to verify. Try again in a moment.')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   const nextProblem = () => setRound((r) => r + 1)
@@ -108,7 +133,9 @@ export default function RacePanel() {
         </button>
 
         <div className="race-title">🏁 DSA RACE</div>
-        <div className="race-sub">FIRST TO SOLVE WINS · 10 / 7 / 5 / 3 / 2 PTS</div>
+        <div className="race-sub">
+          SOLVE IT FOR REAL · VERIFIED VS LEETCODE · 10 / 7 / 5 / 3 / 2 PTS
+        </div>
 
         <div className="race-problem">
           <div>
@@ -123,28 +150,36 @@ export default function RacePanel() {
             target="_blank"
             rel="noreferrer"
           >
-            OPEN ↗
+            SOLVE ↗
           </a>
         </div>
 
         <div className="race-actions">
           <button
             className={`pixel-button ${youSolved ? '' : 'primary'}`}
-            onClick={markSolved}
-            disabled={youSolved}
+            onClick={verifySolve}
+            disabled={youSolved || verifying}
             type="button"
           >
-            {youSolved ? '✓ YOU SOLVED IT' : '◆ MARK SOLVED'}
+            {youSolved
+              ? '✓ SOLVED (VERIFIED)'
+              : verifying
+                ? 'VERIFYING…'
+                : '✓ I SOLVED IT — VERIFY'}
           </button>
           <button className="pixel-button" onClick={nextProblem} type="button">
             NEXT PROBLEM →
           </button>
         </div>
 
+        {msg && <div className="race-msg">{msg}</div>}
+
         <div className="race-cols">
           <div className="race-col">
             <div className="race-col-head">THIS PROBLEM</div>
-            {solvers.length === 0 && <div className="race-empty">Racing… no solvers yet</div>}
+            {solvers.length === 0 && (
+              <div className="race-empty">Solve it, then verify to score</div>
+            )}
             {solvers.map((s) => (
               <div key={s.name} className={`race-row ${s.isYou ? 'you' : ''}`}>
                 <span className="race-order">#{s.order}</span>
@@ -152,14 +187,8 @@ export default function RacePanel() {
                   {s.isYou ? `${s.name} (you)` : s.name}
                 </span>
                 <span className="race-pts">+{s.points}</span>
-                <span className="race-time">{(s.at / 1000).toFixed(1)}s</span>
               </div>
             ))}
-            {bots.length + 1 > solvers.length && solvers.length > 0 && (
-              <div className="race-empty">
-                {bots.length + 1 - solvers.length} still racing…
-              </div>
-            )}
           </div>
 
           <div className="race-col">
@@ -179,7 +208,8 @@ export default function RacePanel() {
         </div>
 
         <div className="race-foot">
-          Opponents are simulated for v1 · open a second tab to race for real
+          Your points are verified against your LeetCode Accepted submissions. The
+          pace opponents are simulated (real multiplayer needs a backend).
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import Controls from './ui/Controls'
 import InfoPanel from './ui/InfoPanel'
 import WorldPanel from './ui/WorldPanel'
 import RacePanel from './ui/RacePanel'
+import InsightsPanel from './ui/InsightsPanel'
 import './App.css'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
   const setSelection = useCityStore((s) => s.setSelection)
   const setWorldSelection = useCityStore((s) => s.setWorldSelection)
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
+  const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
 
   // ESC closes any open card, GitCity-style.
   useEffect(() => {
@@ -24,11 +26,12 @@ export default function App() {
         setSelection(null)
         setWorldSelection(null)
         setRaceOpen(false)
+        setInsightsOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setSelection, setWorldSelection, setRaceOpen])
+  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen])
 
   return (
     <div className="app">
@@ -42,6 +45,7 @@ export default function App() {
           {(mode === 'city' || mode === 'multi') && <InfoPanel />}
           {mode === 'world' && <WorldPanel />}
           <RacePanel />
+          <InsightsPanel />
           <div className="hud-hints">
             DRAG <span>ORBIT</span> · SCROLL <span>ZOOM</span> · CLICK{' '}
             <span>INSPECT</span> · ESC <span>CLOSE</span>

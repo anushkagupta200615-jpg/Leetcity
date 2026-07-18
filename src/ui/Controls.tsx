@@ -15,6 +15,7 @@ export default function Controls() {
   const toggleNight = useCityStore((s) => s.toggleNight)
   const setMode = useCityStore((s) => s.setMode)
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
+  const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
 
   return (
     <div className="controls">
@@ -31,6 +32,14 @@ export default function Controls() {
           </button>
         ))}
       </div>
+      <button
+        type="button"
+        className="insights-btn"
+        onClick={() => setInsightsOpen(true)}
+        title="Insights: pace, gaps, readiness"
+      >
+        📊 Insights
+      </button>
       <button
         type="button"
         className="race-btn"

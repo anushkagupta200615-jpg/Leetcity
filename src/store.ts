@@ -19,6 +19,7 @@ interface CityState {
   worldSelection: StoredTower | null
   roster: CityData[]
   raceOpen: boolean
+  insightsOpen: boolean
   load: (username: string) => Promise<void>
   loadDemo: () => void
   setTheme: (theme: ThemeKey) => void
@@ -27,6 +28,7 @@ interface CityState {
   setSelection: (selection: Selection | null) => void
   setWorldSelection: (tower: StoredTower | null) => void
   setRaceOpen: (open: boolean) => void
+  setInsightsOpen: (open: boolean) => void
   /** Show a city directly (used for synthetic citizens; not persisted). */
   enterCity: (data: CityData) => void
 }
@@ -43,6 +45,7 @@ export const useCityStore = create<CityState>((set) => ({
   worldSelection: null,
   roster: [],
   raceOpen: false,
+  insightsOpen: false,
 
   load: async (username: string) => {
     const name = username.trim()
@@ -108,6 +111,7 @@ export const useCityStore = create<CityState>((set) => ({
   setSelection: (selection) => set({ selection }),
   setWorldSelection: (tower) => set({ worldSelection: tower }),
   setRaceOpen: (open) => set({ raceOpen: open }),
+  setInsightsOpen: (open) => set({ insightsOpen: open }),
   enterCity: (data) =>
     set({ data, mode: 'city', selection: null, worldSelection: null }),
 }))
