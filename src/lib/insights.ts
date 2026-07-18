@@ -200,7 +200,7 @@ export function resumeLines(data: CityData): string[] {
   const st = standing(data)
   const top = data.topics.slice(0, 2).map((t) => t.label)
   const rounded = all >= 100 ? `${Math.floor(all / 100) * 100}+` : `${all}`
-  const platform = data.platform === 'codeforces' ? 'Codeforces' : 'LeetCode'
+  const platform = 'LeetCode'
 
   const lines: string[] = []
   lines.push(

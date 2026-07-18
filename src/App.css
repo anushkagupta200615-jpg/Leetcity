@@ -1546,10 +1546,6 @@ body,
   min-width: 0;
 }
 
-.topbar .username-form.docked form .platform-select {
-  flex-shrink: 0;
-}
-
 .topbar .controls {
   position: static;
   flex-shrink: 0;
@@ -1589,18 +1585,6 @@ body,
   color: var(--muted);
   margin-top: 8px;
   letter-spacing: 0.5px;
-}
-
-/* ---------- platform selector in search ---------- */
-.platform-select {
-  font-family: var(--pixel);
-  font-size: 8px;
-  background: #10131d;
-  border: 1px solid var(--border);
-  color: var(--accent);
-  border-radius: 2px;
-  padding: 0 8px;
-  cursor: pointer;
 }
 
 .roadmap-btn {
