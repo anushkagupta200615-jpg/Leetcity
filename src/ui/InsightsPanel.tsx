@@ -96,19 +96,64 @@ export default function InsightsPanel() {
                 ))}
               </select>
             </div>
-            <div className="ins-ready">
-              <div className="ins-bar">
-                <div className="ins-bar-fill" style={{ width: `${readiness.score}%` }} />
-                <span>{readiness.score}%</span>
-              </div>
-              {readiness.focus.length > 0 && (
-                <div className="ins-focus">
-                  FOCUS:{' '}
-                  {readiness.focus
-                    .map((f) => `${f.topic} (${f.solved})`)
-                    .join(' · ')}
+
+            <div className="ins-bar">
+              <div className="ins-bar-fill" style={{ width: `${readiness.score}%` }} />
+              <span>{readiness.score}% READY</span>
+            </div>
+            <div className="ins-formula">
+              coverage {readiness.coverage}% × depth {readiness.depth}% ={' '}
+              {readiness.score}%
+            </div>
+
+            {/* per-topic coverage for this company */}
+            <div className="ins-cov">
+              {readiness.topics.map((t) => (
+                <div key={t.topic} className={`ins-cov-row ${t.cov < 0.5 ? 'weak' : ''}`}>
+                  <span className="ins-cov-topic">{t.topic}</span>
+                  <span className="ins-cov-track">
+                    <span
+                      className="ins-cov-fill"
+                      style={{ width: `${Math.round(t.cov * 100)}%` }}
+                    />
+                  </span>
+                  <span className="ins-cov-num">{t.solved}</span>
                 </div>
-              )}
+              ))}
+            </div>
+
+            {readiness.focus.length > 0 && (
+              <div className="ins-weak">
+                <div className="ins-weak-h">
+                  ⚠ WEAK FOR {company.toUpperCase()} — SOLVE THESE
+                </div>
+                {readiness.focus.map((f) => (
+                  <div key={f.topic} className="ins-gap">
+                    <div className="ins-gap-topic">
+                      {f.topic} <em>· {f.solved} solved</em>
+                    </div>
+                    <div className="ins-gap-probs">
+                      {f.problems.map((p) => (
+                        <a
+                          key={p.slug}
+                          className={`ins-prob ${p.difficulty.toLowerCase()}`}
+                          href={`https://leetcode.com/problems/${p.slug}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {p.title} ↗
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="ins-tiny">
+              Readiness factors topic coverage AND your medium/hard depth — breadth
+              alone isn't interview-ready. Company focus is a curated approximation;
+              LeetCode's real per-company lists are Premium-only.
             </div>
           </section>
         )}

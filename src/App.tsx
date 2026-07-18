@@ -47,10 +47,13 @@ export default function App() {
       {data ? (
         <div className="canvas-wrap">
           <Scene data={data} />
-          <div className="hud-logo">LEETCITY</div>
+          <header className="topbar">
+            <div className="hud-logo">LEETCITY</div>
+            <UsernameForm />
+            <Controls />
+          </header>
           {mode === 'city' && <StatsOverlay />}
           <ShareButton />
-          <Controls />
           {(mode === 'city' || mode === 'multi') && <InfoPanel />}
           {mode === 'world' && <WorldPanel />}
           <RacePanel />
@@ -62,9 +65,11 @@ export default function App() {
           </div>
         </div>
       ) : (
-        <div className="landing" />
+        <>
+          <div className="landing" />
+          <UsernameForm />
+        </>
       )}
-      <UsernameForm />
     </div>
   )
 }

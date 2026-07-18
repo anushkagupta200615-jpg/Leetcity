@@ -1414,3 +1414,161 @@ body,
   color: var(--medium);
   text-align: right;
 }
+
+/* ---------- company readiness — per-topic coverage ---------- */
+
+.ins-cov {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.ins-cov-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.ins-cov-row.weak .ins-cov-topic {
+  color: var(--hard);
+}
+
+.ins-cov-topic {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ins-cov-track {
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #10131d;
+  overflow: hidden;
+}
+
+.ins-cov-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--hard), var(--medium), var(--easy));
+}
+
+.ins-cov-num {
+  text-align: right;
+  color: var(--muted);
+}
+
+.ins-weak {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255, 55, 95, 0.35);
+  background: rgba(255, 55, 95, 0.05);
+  border-radius: 2px;
+}
+
+.ins-weak-h {
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: var(--hard);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.ins-weak .ins-gap {
+  margin-bottom: 10px;
+}
+
+.ins-tiny {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: #4a526a;
+  margin-top: 10px;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+
+/* Fully solid modals — no alpha/backdrop dependency, readable over any scene */
+.ins-modal,
+.race-modal,
+.lb-modal {
+  background: #0c0f17;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ---------- top bar: logo + search + controls in one non-overlapping row ---------- */
+.topbar {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar .hud-logo {
+  position: static;
+  flex-shrink: 0;
+}
+
+.topbar .username-form.docked {
+  position: static;
+  transform: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.topbar .username-form.docked form {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.topbar .controls {
+  position: static;
+  flex-shrink: 0;
+}
+
+@media (max-width: 820px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    left: 8px;
+    right: 8px;
+  }
+  .topbar .hud-logo {
+    display: none;
+  }
+  .topbar .username-form.docked {
+    flex: 1 1 100%;
+  }
+  .topbar .username-form.docked form {
+    max-width: none;
+  }
+  .topbar .controls {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topbar .controls::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.ins-formula {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+}

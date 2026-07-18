@@ -106,30 +106,51 @@ export const PROBLEMS_BY_TOPIC: Record<string, Problem[]> = {
   ],
 }
 
-/** How many solves in a topic we treat as "covered" for readiness. */
-export const COVERED_AT = 6
+/** Solves in a topic to count it as fully "covered" for readiness (solid depth). */
+export const COVERED_AT = 12
+/** Below this many solves a topic is treated as a genuine gap to fill. */
+export const GAP_AT = 3
 
 /**
- * Company interview profiles: topic → relative weight. Approximate, curated
- * from commonly-reported interview focus (not official). Used to estimate
- * readiness and highlight focus areas.
+ * Company interview profiles: topic → relative weight. These are **curated
+ * approximations** of each company's commonly-reported interview focus — the
+ * real per-company problem lists are LeetCode Premium data and aren't public.
+ * Used to estimate readiness and highlight weak areas per company.
  */
 export const COMPANY_PROFILES: Record<string, Record<string, number>> = {
-  Google: {
-    Graph: 3, 'Dynamic Programming': 3, Array: 2, Tree: 2, Backtracking: 2, String: 1, Greedy: 1,
-  },
-  Amazon: {
-    Array: 3, 'Hash Table': 2, Tree: 2, Graph: 2, 'Dynamic Programming': 2, String: 2, 'Linked List': 1,
-  },
-  Meta: {
-    Array: 3, String: 2, Tree: 2, Graph: 2, 'Hash Table': 2, 'Binary Search': 1, 'Dynamic Programming': 1,
-  },
-  Microsoft: {
-    Array: 2, String: 2, Tree: 2, 'Linked List': 2, 'Dynamic Programming': 2, Stack: 1, Graph: 1,
-  },
-  Apple: {
-    Array: 2, String: 2, 'Linked List': 2, Tree: 1, 'Dynamic Programming': 1, 'Hash Table': 1,
-  },
+  Google: { Graph: 3, 'Dynamic Programming': 3, Array: 2, Tree: 2, Backtracking: 2, 'Binary Search': 1, String: 1, Greedy: 1 },
+  Amazon: { Array: 3, 'Hash Table': 2, Tree: 2, Graph: 2, 'Dynamic Programming': 2, String: 2, 'Linked List': 1, Heap: 1 },
+  Meta: { Array: 3, String: 2, Tree: 2, Graph: 2, 'Hash Table': 2, 'Binary Search': 1, 'Dynamic Programming': 1, 'Sliding Window': 1 },
+  Microsoft: { Array: 2, String: 2, Tree: 2, 'Linked List': 2, 'Dynamic Programming': 2, Stack: 1, Graph: 1 },
+  Apple: { Array: 2, String: 2, 'Linked List': 2, Tree: 1, 'Dynamic Programming': 1, 'Hash Table': 1 },
+  Bloomberg: { Array: 3, String: 3, 'Hash Table': 2, 'Linked List': 2, Stack: 2, Heap: 1 },
+  Adobe: { Array: 2, String: 2, 'Dynamic Programming': 2, Tree: 1, 'Hash Table': 1, Greedy: 1 },
+  Uber: { Array: 2, Graph: 2, 'Dynamic Programming': 2, 'Hash Table': 2, Heap: 1, Tree: 1 },
+  Oracle: { Array: 2, String: 2, 'Dynamic Programming': 1, Tree: 1, 'Hash Table': 1 },
+  TikTok: { Array: 2, 'Dynamic Programming': 2, String: 2, Graph: 1, 'Two Pointers': 1 },
+  ByteDance: { Array: 2, 'Dynamic Programming': 2, Graph: 2, String: 1, 'Binary Search': 1 },
+  LinkedIn: { Array: 2, 'Hash Table': 2, Tree: 2, Heap: 1, String: 1, Graph: 1 },
+  'Goldman Sachs': { Array: 3, String: 2, 'Hash Table': 1, 'Dynamic Programming': 1, Greedy: 1 },
+  Salesforce: { Array: 2, String: 2, Tree: 1, 'Dynamic Programming': 1 },
+  Netflix: { Array: 2, 'Dynamic Programming': 2, Graph: 1, String: 1 },
+  Airbnb: { Array: 2, 'Dynamic Programming': 2, 'Hash Table': 2, Backtracking: 1, String: 1 },
+  Nvidia: { Array: 2, 'Dynamic Programming': 1, String: 1, 'Bit Manipulation': 1 },
+  Snap: { Array: 2, String: 2, Tree: 1, 'Dynamic Programming': 1 },
+  Yahoo: { Array: 2, String: 2, 'Hash Table': 1 },
+  Cisco: { Array: 2, String: 1, 'Linked List': 1, Tree: 1 },
+  X: { Array: 2, 'Hash Table': 2, String: 1, Graph: 1 },
+  Walmart: { Array: 2, String: 2, 'Dynamic Programming': 1, Tree: 1 },
+  Atlassian: { Array: 2, Graph: 2, 'Dynamic Programming': 1, Heap: 1, String: 1 },
+  Databricks: { Array: 2, 'Dynamic Programming': 2, Graph: 2, Heap: 1 },
+  Palantir: { Array: 2, 'Hash Table': 2, Graph: 1, 'Dynamic Programming': 1 },
+  Doordash: { Array: 2, Graph: 2, 'Hash Table': 2, 'Dynamic Programming': 1 },
+  Stripe: { Array: 2, 'Hash Table': 2, String: 2, Greedy: 1 },
+  Nutanix: { Array: 2, 'Dynamic Programming': 1, Tree: 1, Graph: 1 },
 }
 
-export const COMPANIES = Object.keys(COMPANY_PROFILES)
+// 'Heap' in profiles maps to the 'Heap (Priority Queue)' topic label.
+export const TOPIC_ALIASES: Record<string, string> = {
+  Heap: 'Heap (Priority Queue)',
+}
+
+export const COMPANIES = Object.keys(COMPANY_PROFILES).sort()
