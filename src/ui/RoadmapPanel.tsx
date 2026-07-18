@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useCityStore } from '../store'
 import { fetchRecentAc } from '../lib/leetcode'
 import {
@@ -19,6 +19,7 @@ export default function RoadmapPanel() {
   const [roadmap, setRoadmap] = useState(ROADMAP_NAMES[0])
   const [done, setDone] = useState<Set<string>>(() => loadDone(ROADMAP_NAMES[0]))
   const [autoMsg, setAutoMsg] = useState('')
+  const [scanning, setScanning] = useState(false)
 
   const problems = ROADMAPS[roadmap]
 
@@ -28,30 +29,43 @@ export default function RoadmapPanel() {
     setAutoMsg('')
   }, [roadmap])
 
-  // Auto-detect solved roadmap problems from the user's recent submissions.
+  // Scan LeetCode's recent-accepted feed and check off any roadmap problems
+  // found. LeetCode's public API only exposes recently-accepted submissions
+  // (not a full solved history), so we request as many as it will return and
+  // tell the user plainly what was — and wasn't — matched.
+  const scan = useCallback(async () => {
+    if (!username || scanning) return
+    setScanning(true)
+    setAutoMsg('Checking your LeetCode submissions…')
+    try {
+      const subs = await fetchRecentAc(username, 500)
+      const slugs = new Set(subs.map((s) => s.titleSlug))
+      const hits = problems.filter((p) => slugs.has(p.slug))
+      if (hits.length) {
+        setDone((prev) => {
+          const next = new Set(prev)
+          hits.forEach((h) => next.add(h.slug))
+          saveDone(roadmap, next)
+          return next
+        })
+      }
+      setAutoMsg(
+        `✓ Matched ${hits.length} solved from your ${subs.length} most recent accepted submissions. ` +
+          `LeetCode only shares recent solves publicly — older ones won't show up, so tick those off yourself.`,
+      )
+    } catch {
+      setAutoMsg('Could not reach LeetCode just now — mark problems yourself, or try again.')
+    } finally {
+      setScanning(false)
+    }
+  }, [username, scanning, problems, roadmap])
+
+  // Auto-scan once when the panel opens for a real user / roadmap change.
   useEffect(() => {
     if (!open || !username) return
-    let cancelled = false
-    fetchRecentAc(username, 20)
-      .then((subs) => {
-        if (cancelled) return
-        const slugs = new Set(subs.map((s) => s.titleSlug))
-        const hits = problems.filter((p) => slugs.has(p.slug))
-        if (hits.length) {
-          setDone((prev) => {
-            const next = new Set(prev)
-            hits.forEach((h) => next.add(h.slug))
-            saveDone(roadmap, next)
-            return next
-          })
-          setAutoMsg(`✓ auto-detected ${hits.length} from your recent submissions`)
-        }
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [open, username, roadmap, problems])
+    void scan()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, username, roadmap])
 
   const groups = useMemo(() => {
     const m = new Map<string, RoadmapProblem[]>()
@@ -102,10 +116,21 @@ export default function RoadmapPanel() {
           <div className="rm-bar-fill" style={{ width: `${pct}%` }} />
           <span>{pct}%</span>
         </div>
+        {username && (
+          <button
+            className="rm-scan"
+            type="button"
+            onClick={() => void scan()}
+            disabled={scanning}
+          >
+            {scanning ? '⟳ Scanning…' : '⟳ Re-scan my LeetCode solves'}
+          </button>
+        )}
         {autoMsg && <div className="rm-auto">{autoMsg}</div>}
         {!username && (
           <div className="rm-auto">
-            Load your real LeetCode username to auto-detect solved problems.
+            Load your real LeetCode username to auto-detect solved problems from
+            your recent submissions.
           </div>
         )}
 
@@ -147,8 +172,9 @@ export default function RoadmapPanel() {
         </div>
 
         <div className="rm-foot">
-          Progress is saved on this device. Solving on LeetCode auto-checks items on
-          your next visit; tap the box to mark any problem yourself.
+          Progress is saved on this device. Auto-scan checks off problems found in
+          your <b>recent</b> LeetCode submissions — LeetCode doesn't expose a full
+          solved history publicly, so tap the box to mark anything it misses.
         </div>
       </div>
     </div>

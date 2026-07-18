@@ -293,12 +293,18 @@ body,
 .username-form button[type='submit'] {
   font-family: var(--pixel);
   font-size: 9px;
+  line-height: 1;
   background: var(--accent);
   color: #14161c;
   border: none;
   border-radius: 2px;
   padding: 10px 14px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: opacity 0.15s, background 0.15s;
 }
 
@@ -1528,8 +1534,20 @@ body,
 
 .topbar .username-form.docked form {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   margin: 0 auto;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.topbar .username-form.docked form input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.topbar .username-form.docked form .platform-select {
+  flex-shrink: 0;
 }
 
 .topbar .controls {
@@ -1710,6 +1728,30 @@ body,
   color: var(--easy);
   margin-top: 8px;
   letter-spacing: 0.5px;
+  line-height: 1.7;
+}
+
+.rm-scan {
+  font-family: var(--pixel);
+  font-size: 8px;
+  background: #10131d;
+  border: 1px solid var(--border);
+  color: #7dd3fc;
+  border-radius: 2px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.rm-scan:hover {
+  border-color: #7dd3fc;
+}
+
+.rm-scan:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .rm-groups {
