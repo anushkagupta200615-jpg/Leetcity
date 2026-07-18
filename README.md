@@ -156,9 +156,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173, enter a LeetCode username (or click **explore a demo
-city** — no network needed). In dev, `vite.config.ts` proxies `/api/leetcode` →
-`leetcode.com/graphql` with the right headers, so CORS is a non-issue.
+Once the development server is running, navigate to `http://localhost:5173` in your web browser. From there, you can enter any public LeetCode username to generate a city, or select the offline demo mode. 
+
+**Note on API Requests:** During local development, the `vite.config.ts` file automatically proxies requests from `/api/leetcode` to `leetcode.com/graphql` with the appropriate headers to seamlessly bypass CORS restrictions.
 
 ```bash
 npm run build      # type-check + production build to dist/
