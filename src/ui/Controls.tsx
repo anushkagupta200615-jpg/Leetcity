@@ -47,7 +47,7 @@ export default function Controls() {
         type="button"
         className="roadmap-btn"
         onClick={() => setRoadmapOpen(true)}
-        title="Study roadmaps (Blind 75)"
+        title="Study roadmaps (Blind 75, Grind 75, NeetCode 150/250, Striver SDE)"
       >
         🗺 Roadmap
       </button>
