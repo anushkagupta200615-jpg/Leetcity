@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import type { CityData } from '../types'
 import { buildCityLayout } from '../lib/cityLayout'
 import { THEMES, shade } from '../lib/themes'
-import { towerPosition, plotToPosition } from '../lib/world'
+import { plotToPosition } from '../lib/world'
 import { buildNeighborhood } from '../lib/roster'
 import { useCityStore } from '../store'
 import City from './City'
@@ -57,17 +57,18 @@ export default function Scene({ data }: { data: CityData }) {
 
   const isWorld = mode === 'world'
   // In world mode, focus whichever tower is selected — click yours, yours fills
-  // the view; click someone else's, theirs does. Default: your own tower.
+  // the view; click someone else's, theirs does. Default: the centre, where
+  // your own tower now stands.
   const [tx, tz] = isWorld
     ? worldSelection
       ? plotToPosition(worldSelection.plot)
-      : towerPosition(data.username)
+      : [0, 0]
     : [0, 0]
   const target: [number, number, number] = isWorld ? [tx, 10, tz] : [0, 4, 0]
   const camDistance = isWorld
     ? worldSelection
-      ? 32 // zoom in on the selected tower
-      : 72 // default: a skyline view of the whole city, your tower centered
+      ? 30 // zoom in on the selected tower
+      : 92 // default: a skyline view of the whole city, your tower centered
     : isMulti && hood
       ? hood.radius * 1.05
       : Math.max(30, layout.cityRadius * 1.45)

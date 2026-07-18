@@ -215,7 +215,7 @@ export function buildNpcTowers(
   for (let i = RESERVED; i < RESERVED + plots; i++) {
     if (occupied.has(i)) continue
     const keep = mulberry32((i * 40503) >>> 0)
-    if (keep() < 0.15) continue // a few plots stay vacant; mostly a dense, even city
+    if (keep() < 0.04) continue // a rare vacant lot; otherwise a dense, even grid
     const [px, pz] = ulam(i)
     const x = px * PLOT
     const z = pz * PLOT

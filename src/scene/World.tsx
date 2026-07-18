@@ -13,20 +13,18 @@ import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
 import type { StoredTower } from '../types'
 import { PLOT, ulam, towerHeight, mergeWorldTowers } from '../lib/world'
-import { buildNpcTowers, type NpcTower } from '../lib/roster'
+import { buildNpcTowers } from '../lib/roster'
 import { THEMES, shade } from '../lib/themes'
 import { useCityStore } from '../store'
 import Ground from './Ground'
 
-const WORLD_RADIUS = 170
+const WORLD_RADIUS = 96
 /** How many spiral plots get citizen buildings. */
-const FILLER_PLOTS = 440
+const FILLER_PLOTS = 720
 /** Always label this many of the tallest citizens. */
 const TALLEST_LABELS = 6
-/** Also label citizens within this radius of the camera focus. */
-const NEAR_LABEL_R = 48
 /** Uniform building footprint so the skyline reads as one planned city. */
-const FOOTPRINT = 2.8
+const FOOTPRINT = 3.0
 
 class LabelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -116,11 +114,9 @@ function TowerLabel({
 function Citizens({
   occupied,
   avoid,
-  focus,
 }: {
   occupied: Set<number>
   avoid: Array<[number, number]>
-  focus: [number, number]
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const themeKey = useCityStore((s) => s.theme)
@@ -130,7 +126,7 @@ function Citizens({
   const [hover, setHover] = useState<number | null>(null)
 
   const npcs = useMemo(
-    () => buildNpcTowers(occupied, FILLER_PLOTS, avoid, PLOT * 3.6),
+    () => buildNpcTowers(occupied, FILLER_PLOTS, avoid, PLOT * 1.4),
     [occupied, avoid],
   )
 
@@ -152,20 +148,13 @@ function Citizens({
     mesh.computeBoundingSphere()
   }, [npcs, theme, night])
 
-  // Which citizens get a floating label: tallest few ∪ near-focus ∪ hovered.
-  const toLabel = useMemo(() => {
-    const map = new Map<string, NpcTower>()
-    ;[...npcs]
-      .sort((a, b) => b.height - a.height)
-      .slice(0, TALLEST_LABELS)
-      .forEach((n) => map.set(n.tower.username, n))
-    const r2 = NEAR_LABEL_R * NEAR_LABEL_R
-    for (const n of npcs) {
-      if ((n.x - focus[0]) ** 2 + (n.z - focus[1]) ** 2 < r2)
-        map.set(n.tower.username, n)
-    }
-    return [...map.values()]
-  }, [npcs, focus])
+  // Only the tallest few citizens get a permanent label — everything else is
+  // labelled on hover. Keeps the skyline readable instead of a wall of text.
+  const toLabel = useMemo(
+    () =>
+      [...npcs].sort((a, b) => b.height - a.height).slice(0, TALLEST_LABELS),
+    [npcs],
+  )
 
   const hovered = hover !== null ? npcs[hover] : null
 
@@ -388,13 +377,24 @@ export default function World() {
   const localTowers = useCityStore((s) => s.towers)
   const remoteProfiles = useCityStore((s) => s.remoteProfiles)
   const currentName = useCityStore((s) => s.data?.username ?? '')
-  const worldSelection = useCityStore((s) => s.worldSelection)
 
   // Real population = your local towers + everyone from the shared backend,
   // deduped with unique plots. Falls back to just local when backend is off.
-  const towers = useMemo(
+  const merged = useMemo(
     () => mergeWorldTowers([...localTowers, ...remoteProfiles]),
     [localTowers, remoteProfiles],
+  )
+
+  // Put YOUR tower on the centre plot (0) so it's always the spotlit heart of
+  // the city — easy to spot and easy to click, GitCity-style.
+  const towers = useMemo(() => {
+    const me = currentName.toLowerCase()
+    return merged.map((t) => (t.username.toLowerCase() === me ? { ...t, plot: 0 } : t))
+  }, [merged, currentName])
+
+  const hasCurrent = useMemo(
+    () => towers.some((t) => t.username.toLowerCase() === currentName.toLowerCase()),
+    [towers, currentName],
   )
 
   const occupied = useMemo(() => new Set(towers.map((t) => t.plot)), [towers])
@@ -403,22 +403,12 @@ export default function World() {
     [towers],
   )
 
-  // Where the camera is looking — used to decide which citizen labels to show.
-  const focus = useMemo<[number, number]>(() => {
-    const plot =
-      worldSelection?.plot ??
-      towers.find((t) => t.username.toLowerCase() === currentName.toLowerCase())
-        ?.plot
-    if (plot === undefined) return [0, 0]
-    const [px, pz] = ulam(plot)
-    return [px * PLOT, pz * PLOT]
-  }, [worldSelection, towers, currentName])
-
   return (
     <group>
       <Ground radius={WORLD_RADIUS} />
-      <Monument />
-      <Citizens occupied={occupied} avoid={avoid} focus={focus} />
+      {/* Monument only marks the centre when you're not standing there. */}
+      {!hasCurrent && <Monument />}
+      <Citizens occupied={occupied} avoid={avoid} />
       <SelectionRing />
       {towers.map((t) => (
         <Tower

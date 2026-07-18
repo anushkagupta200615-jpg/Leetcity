@@ -2,13 +2,14 @@ import type { CityData, StoredTower } from '../types'
 import { hashString } from './seed'
 import { recentActivity } from './leetcode'
 
-/** Distance between plot centers, world units. */
-export const PLOT = 12
+/** Distance between plot centers, world units. Tight spacing packs the towers
+ * into orderly rows so the world reads as one planned, symmetric grid. */
+export const PLOT = 5.2
 /** Number of addressable plots in the world — keeps every tower inside the
  * populated downtown so the world never feels empty. */
 export const WORLD_SLOTS = 420
 /** Plots 0..RESERVED-1 are kept for the central monument & plaza. */
-export const RESERVED = 9
+export const RESERVED = 25
 
 /**
  * Ulam square-spiral: index -> (x, z) plot coordinates.
