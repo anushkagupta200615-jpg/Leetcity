@@ -8,7 +8,10 @@ query cityData($username: String!) {
   matchedUser(username: $username) {
     username
     profile { userAvatar ranking }
-    submitStatsGlobal { acSubmissionNum { difficulty count } }
+    submitStatsGlobal {
+      acSubmissionNum { difficulty count submissions }
+      totalSubmissionNum { difficulty submissions }
+    }
     tagProblemCounts {
       advanced { tagName tagSlug problemsSolved }
       intermediate { tagName tagSlug problemsSolved }
@@ -53,14 +56,46 @@ function collectTags(raw: RawTag[] | undefined, level: TagLevel): TopicStat[] {
     }))
 }
 
+const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
+const cacheKey = (name: string) => `leetcity:cache:${name.toLowerCase()}`
+
+function readCache(name: string): CityData | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(name))
+    if (!raw) return null
+    const data = JSON.parse(raw) as CityData
+    if (Date.now() - new Date(data.fetchedAt).getTime() > CACHE_TTL_MS) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+function writeCache(data: CityData) {
+  try {
+    localStorage.setItem(cacheKey(data.username), JSON.stringify(data))
+  } catch {
+    /* storage full — skip caching */
+  }
+}
+
 export async function fetchCityData(username: string): Promise<CityData> {
+  const hit = readCache(username)
+  if (hit) return hit
+
   const data = await gql(CITY_QUERY, { username })
   const mu = data?.matchedUser
   if (!mu) throw new Error(`User "${username}" not found (or profile is private).`)
 
   const counts: Record<string, number> = {}
+  let acSubs = 0
   for (const row of mu.submitStatsGlobal?.acSubmissionNum ?? []) {
     counts[String(row.difficulty).toLowerCase()] = row.count
+    if (String(row.difficulty).toLowerCase() === 'all') acSubs = row.submissions ?? 0
+  }
+  let totalSubs = 0
+  for (const row of mu.submitStatsGlobal?.totalSubmissionNum ?? []) {
+    if (String(row.difficulty).toLowerCase() === 'all') totalSubs = row.submissions ?? 0
   }
 
   const topics = [
@@ -77,9 +112,11 @@ export async function fetchCityData(username: string): Promise<CityData> {
   }
 
   const contest = data.userContestRanking
-  return {
+  const result: CityData = {
     username: mu.username,
     avatarUrl: mu.profile?.userAvatar ?? '',
+    ranking: mu.profile?.ranking ?? 0,
+    acceptance: totalSubs > 0 ? (acSubs / totalSubs) * 100 : 0,
     totals: {
       easy: counts.easy ?? 0,
       medium: counts.medium ?? 0,
@@ -98,6 +135,8 @@ export async function fetchCityData(username: string): Promise<CityData> {
     streak: mu.userCalendar?.streak ?? 0,
     fetchedAt: new Date().toISOString(),
   }
+  writeCache(result)
+  return result
 }
 
 /** Submissions in the last `days` days, from the calendar map. */
@@ -146,6 +185,8 @@ export function demoCityData(): CityData {
   return {
     username: 'demo',
     avatarUrl: '',
+    ranking: 98765,
+    acceptance: 62.4,
     totals: { easy: 210, medium: 244, hard: 62, all: 516 },
     topics: DEMO_TAGS.map(([label, level, solved]) => ({
       tag: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),

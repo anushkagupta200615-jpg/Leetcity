@@ -1,27 +1,68 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import { OrbitControls, Stars } from '@react-three/drei'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import type { CityData } from '../types'
 import { buildCityLayout } from '../lib/cityLayout'
+import { THEMES, shade } from '../lib/themes'
+import { towerPosition } from '../lib/world'
+import { buildNeighborhood } from '../lib/roster'
+import { useCityStore } from '../store'
 import City from './City'
+import World from './World'
+import Neighborhood from './Neighborhood'
 
-/** Re-frames the camera whenever a new city is generated. */
-function CameraRig({ radius }: { radius: number }) {
+/** Re-frames the camera when the view or the loaded user changes. */
+function CameraRig({
+  target,
+  distance,
+}: {
+  target: [number, number, number]
+  distance: number
+}) {
   const camera = useThree((s) => s.camera)
   useEffect(() => {
-    const d = Math.max(30, radius * 1.45)
-    camera.position.set(d, d * 0.72, d)
-    camera.lookAt(0, 4, 0)
+    camera.position.set(
+      target[0] + distance,
+      distance * 0.72,
+      target[2] + distance,
+    )
+    camera.lookAt(target[0], target[1], target[2])
     camera.updateProjectionMatrix()
-  }, [camera, radius])
+  }, [camera, target[0], target[1], target[2], distance])
   return null
 }
 
 export default function Scene({ data }: { data: CityData }) {
   const layout = useMemo(() => buildCityLayout(data), [data])
-  const controlsRef = useRef<OrbitControlsImpl>(null)
-  const far = Math.max(600, layout.cityRadius * 10)
+  const themeKey = useCityStore((s) => s.theme)
+  const night = useCityStore((s) => s.night)
+  const mode = useCityStore((s) => s.mode)
+  const roster = useCityStore((s) => s.roster)
+  const setSelection = useCityStore((s) => s.setSelection)
+  const setWorldSelection = useCityStore((s) => s.setWorldSelection)
+  const theme = THEMES[themeKey]
+
+  const isMulti = mode === 'multi'
+  const hood = useMemo(
+    () => (isMulti ? buildNeighborhood([data, ...roster]) : null),
+    [isMulti, data, roster],
+  )
+
+  const dim = night ? 0.35 : 1
+  const bgTop = shade(theme.bgTop, dim)
+  const bgBottom = shade(theme.bgBottom, dim)
+
+  const isWorld = mode === 'world'
+  const [tx, tz] = isWorld ? towerPosition(data.username) : [0, 0]
+  const target: [number, number, number] = isWorld ? [tx, 10, tz] : [0, 4, 0]
+  const camDistance = isWorld
+    ? 62
+    : isMulti && hood
+      ? hood.radius * 1.05
+      : Math.max(30, layout.cityRadius * 1.45)
+  const fogRadius = isWorld ? 300 : isMulti && hood ? hood.radius : layout.cityRadius
+  const far = Math.max(1200, fogRadius * 10)
 
   return (
     <Canvas
@@ -29,18 +70,22 @@ export default function Scene({ data }: { data: CityData }) {
       // preserveDrawingBuffer lets the Share button read pixels back out.
       gl={{ preserveDrawingBuffer: true, antialias: true }}
       camera={{ position: [60, 44, 60], fov: 42, near: 0.1, far }}
-      style={{ background: 'linear-gradient(#0b0d12 0%, #131826 100%)' }}
+      style={{ background: `linear-gradient(${bgTop} 0%, ${bgBottom} 100%)` }}
+      onPointerMissed={() => {
+        setSelection(null)
+        setWorldSelection(null)
+      }}
     >
-      <fog
-        attach="fog"
-        args={['#0b0d12', layout.cityRadius * 2.2, layout.cityRadius * 6]}
-      />
+      <fog attach="fog" args={[bgTop, fogRadius * 1.6, fogRadius * 5]} />
 
-      <hemisphereLight args={['#5a6b9e', '#12151c', 0.7]} />
-      <ambientLight intensity={0.25} />
+      <hemisphereLight
+        args={night ? ['#2a3660', '#05070c', 0.5] : ['#5a6b9e', '#12151c', 0.7]}
+      />
+      <ambientLight intensity={night ? 0.18 : 0.25} />
       <directionalLight
-        position={[45, 60, 25]}
-        intensity={1.6}
+        position={night ? [-30, 50, -20] : [45, 60, 25]}
+        intensity={night ? 0.35 : 1.6}
+        color={night ? '#8fa3d9' : '#ffffff'}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -49,20 +94,61 @@ export default function Scene({ data }: { data: CityData }) {
         shadow-camera-top={70}
         shadow-camera-bottom={-70}
       />
+      {/* warm accent fill, layered on top of the existing rig */}
+      <pointLight
+        position={[-38, 26, -38]}
+        color="#ff9a3c"
+        intensity={night ? 260 : 120}
+        distance={190}
+        decay={1.6}
+      />
 
-      <CameraRig radius={layout.cityRadius} />
-      <City layout={layout} />
+      {night && (
+        <Stars
+          radius={fogRadius * 2.5}
+          depth={80}
+          count={2400}
+          factor={6}
+          saturation={0}
+          fade
+          speed={0.6}
+        />
+      )}
+
+      <CameraRig target={target} distance={camDistance} />
+      {isMulti && hood ? (
+        <Neighborhood hood={hood} />
+      ) : isWorld ? (
+        <World />
+      ) : (
+        <City layout={layout} />
+      )}
+
+      <EffectComposer multisampling={0}>
+        <Bloom
+          mipmapBlur
+          intensity={night ? 1.1 : 0.55}
+          luminanceThreshold={1.0}
+          levels={7}
+        />
+        <Vignette eskil={false} offset={0.22} darkness={0.62} />
+      </EffectComposer>
 
       <OrbitControls
-        ref={controlsRef}
-        autoRotate
+        autoRotate={!isWorld && !isMulti}
         autoRotateSpeed={0.55}
         enableDamping
         dampingFactor={0.08}
         maxPolarAngle={Math.PI / 2.15}
-        minDistance={12}
-        maxDistance={Math.max(180, layout.cityRadius * 4)}
-        target={[0, 4, 0]}
+        minDistance={8}
+        maxDistance={
+          isWorld
+            ? 700
+            : isMulti && hood
+              ? hood.radius * 3
+              : Math.max(180, layout.cityRadius * 4)
+        }
+        target={target}
       />
     </Canvas>
   )

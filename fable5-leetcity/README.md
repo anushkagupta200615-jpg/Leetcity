@@ -12,10 +12,6 @@ Type in any LeetCode username and get an explorable skyline built from their pro
 - **Click any building** to inspect its district (topic, level, solved count, difficulty)
 - **6 color themes** (Classic, Matrix, Noir, Aurora, Ocean, Gold) + **day/night mode** with lit windows
 - **Share card** export — 1600×900 PNG with your skyline, stats, and branding baked in
-- **🌍 World mode** — a shared world where every user's tower stands on a plot derived
-  deterministically from their username hash (same spot for everyone, no backend needed).
-  Every profile you search settles permanently into your world (browser storage), procedural
-  "citizen" buildings fill the downtown, and clicking a tower shows stats + "Explore their city"
 
 ## Quick start
 
