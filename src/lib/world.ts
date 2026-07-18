@@ -52,6 +52,30 @@ export function plotToPosition(plot: number): [number, number] {
   return [px * PLOT, pz * PLOT]
 }
 
+/**
+ * Merge local + remote towers into one deduped set with unique plots.
+ * Dedupe by username (keep the higher solve count); assign plots by hash with
+ * a deterministic linear probe so no two real towers ever overlap.
+ */
+export function mergeWorldTowers(list: StoredTower[]): StoredTower[] {
+  const byName = new Map<string, StoredTower>()
+  for (const t of list) {
+    const k = t.username.toLowerCase()
+    const ex = byName.get(k)
+    if (!ex || t.all > ex.all) byName.set(k, t)
+  }
+  const sorted = [...byName.values()].sort((a, b) =>
+    a.username.toLowerCase() < b.username.toLowerCase() ? -1 : 1,
+  )
+  const taken = new Set<number>()
+  return sorted.map((t) => {
+    let p = plotFor(t.username)
+    while (taken.has(p)) p++
+    taken.add(p)
+    return { ...t, plot: p }
+  })
+}
+
 /** Difficulty-weighted score: a Hard counts 5x an Easy. */
 export function towerScore(easy: number, medium: number, hard: number): number {
   return easy + medium * 2.5 + hard * 5

@@ -5,7 +5,8 @@
 Type any public LeetCode username and LeetCity procedurally generates a neon,
 pixel-art city from that profile — topics become districts, every solved problem
 becomes a building, difficulty drives height and color, and your contest rating
-rises as a glowing central spire. Built for the competitive-programming crowd.
+rises as a glowing central spire. Inspired by [GitCity](https://thegitcity.com),
+built for the competitive-programming crowd.
 
 > No login. No backend required. Runs entirely in the browser against LeetCode's
 > public GraphQL data, with a built-in demo city that needs no network at all.
@@ -156,9 +157,9 @@ npm install
 npm run dev
 ```
 
-Once the development server is running, navigate to `http://localhost:5173` in your web browser. From there, you can enter any public LeetCode username to generate a city, or select the offline demo mode. 
-
-**Note on API Requests:** During local development, the `vite.config.ts` file automatically proxies requests from `/api/leetcode` to `leetcode.com/graphql` with the appropriate headers to seamlessly bypass CORS restrictions.
+Open http://localhost:5173, enter a LeetCode username (or click **explore a demo
+city** — no network needed). In dev, `vite.config.ts` proxies `/api/leetcode` →
+`leetcode.com/graphql` with the right headers, so CORS is a non-issue.
 
 ```bash
 npm run build      # type-check + production build to dist/
@@ -167,18 +168,39 @@ npm run preview    # preview the production build
 
 ---
 
-## ☁️ Deployment
+## ☁️ Deploying
 
-### Vercel (Recommended)
-This project is optimized for deployment on Vercel. Upon pushing the repository to Vercel, the application will function out-of-the-box. The `api/leetcode.ts` file is automatically detected and deployed as a Vercel Edge Function. This function mirrors the `/api/leetcode` path utilized by the local development proxy and includes built-in 1-hour edge caching for optimal performance.
-
-### Alternative Hosting Platforms
-If you choose to deploy on an alternative static hosting provider, please ensure the following:
-1. Deploy the compiled `dist/` directory.
-2. Implement a custom proxy server that securely forwards POST requests to `leetcode.com/graphql`.
-3. Ensure the proxy includes the required `Referer: https://leetcode.com` HTTP header to comply with CORS policies.
+Push to **Vercel** and it works as-is: `api/leetcode.ts` is picked up as an Edge
+Function serving the same `/api/leetcode` path the dev proxy serves, with 1-hour
+edge caching. For any other static host, deploy `dist/` plus an equivalent proxy
+that forwards POST bodies to `leetcode.com/graphql` with a `Referer:
+https://leetcode.com` header.
 
 ---
+
+## 🌐 Shared world backend (optional)
+
+By default the world is populated by deterministic synthetic citizens. Connect a
+free **Supabase** project and it becomes a *real* shared world: every user who
+builds a city is written to the database, everyone sees everyone else's real
+tower, and a global **🏆 Ranks** leaderboard turns on. It's fully additive —
+with no keys, LeetCity runs exactly as before.
+
+**Setup (~5 min):**
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the project's **SQL Editor**, run [`supabase-schema.sql`](./supabase-schema.sql).
+3. **Project Settings → API** — copy your Project URL and the `anon` public key.
+4. Copy `.env.example` to `.env` and fill in the two values. Add the same two
+   variables in **Vercel → Settings → Environment Variables** for production.
+5. Restart the dev server / redeploy. The world now fills with real people.
+
+All backend logic lives in `src/lib/supabase.ts` (plain REST — no SDK), and the
+schema uses open row-level policies since the data is public LeetCode stats
+(see the note in the SQL file for hardening).
+
+**Roadmap on top of this:** live real-time races (Supabase Realtime), friends /
+follow, leagues & seasons, and topic/company-readiness leaderboards.
 
 ## ⚠️ Notes & limits
 

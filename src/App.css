@@ -1297,3 +1297,120 @@ body,
   margin-bottom: 14px;
   line-height: 1.4;
 }
+
+/* ---------- Global leaderboard ---------- */
+
+.lb-btn {
+  color: var(--medium) !important;
+}
+
+.lb-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 5, 9, 0.8);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: panel-in 0.15s ease-out;
+}
+
+.lb-modal {
+  position: relative;
+  width: min(520px, 94vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 20px 22px;
+  background: rgba(11, 14, 21, 0.98);
+}
+
+.lb-title {
+  font-family: var(--pixel);
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+
+.lb-sub {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+  margin: 8px 0 16px;
+  letter-spacing: 0.5px;
+}
+
+.lb-empty {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+  padding: 20px 0;
+  text-align: center;
+}
+
+.lb-head,
+.lb-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 70px 70px;
+  align-items: center;
+  gap: 8px;
+}
+
+.lb-head {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+  padding: 0 8px 8px;
+  letter-spacing: 0.5px;
+}
+
+.lb-row {
+  width: 100%;
+  background: #10131d;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 9px 8px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+}
+
+.lb-row:hover {
+  border-color: var(--accent);
+}
+
+.lb-row.you {
+  border-color: var(--accent);
+  background: rgba(255, 161, 22, 0.08);
+}
+
+.lb-rank {
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.lb-rank.top {
+  color: var(--accent);
+}
+
+.lb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-solved {
+  color: var(--easy);
+  text-align: right;
+}
+
+.lb-rating {
+  color: var(--medium);
+  text-align: right;
+}

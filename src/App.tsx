@@ -9,6 +9,7 @@ import InfoPanel from './ui/InfoPanel'
 import WorldPanel from './ui/WorldPanel'
 import RacePanel from './ui/RacePanel'
 import InsightsPanel from './ui/InsightsPanel'
+import Leaderboard from './ui/Leaderboard'
 import './App.css'
 
 export default function App() {
@@ -18,6 +19,13 @@ export default function App() {
   const setWorldSelection = useCityStore((s) => s.setWorldSelection)
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
   const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
+  const setLeaderboardOpen = useCityStore((s) => s.setLeaderboardOpen)
+  const refreshWorld = useCityStore((s) => s.refreshWorld)
+
+  // Pull the shared population once on load (no-op if backend disabled).
+  useEffect(() => {
+    void refreshWorld()
+  }, [refreshWorld])
 
   // ESC closes any open card, GitCity-style.
   useEffect(() => {
@@ -27,11 +35,12 @@ export default function App() {
         setWorldSelection(null)
         setRaceOpen(false)
         setInsightsOpen(false)
+        setLeaderboardOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen])
+  }, [setSelection, setWorldSelection, setRaceOpen, setInsightsOpen, setLeaderboardOpen])
 
   return (
     <div className="app">
@@ -46,6 +55,7 @@ export default function App() {
           {mode === 'world' && <WorldPanel />}
           <RacePanel />
           <InsightsPanel />
+          <Leaderboard />
           <div className="hud-hints">
             DRAG <span>ORBIT</span> · SCROLL <span>ZOOM</span> · CLICK{' '}
             <span>INSPECT</span> · ESC <span>CLOSE</span>

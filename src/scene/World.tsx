@@ -12,7 +12,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
 import type { StoredTower } from '../types'
-import { PLOT, ulam, towerHeight } from '../lib/world'
+import { PLOT, ulam, towerHeight, mergeWorldTowers } from '../lib/world'
 import { buildNpcTowers, type NpcTower } from '../lib/roster'
 import { THEMES, shade } from '../lib/themes'
 import { useCityStore } from '../store'
@@ -385,9 +385,17 @@ function Monument() {
 }
 
 export default function World() {
-  const towers = useCityStore((s) => s.towers)
+  const localTowers = useCityStore((s) => s.towers)
+  const remoteProfiles = useCityStore((s) => s.remoteProfiles)
   const currentName = useCityStore((s) => s.data?.username ?? '')
   const worldSelection = useCityStore((s) => s.worldSelection)
+
+  // Real population = your local towers + everyone from the shared backend,
+  // deduped with unique plots. Falls back to just local when backend is off.
+  const towers = useMemo(
+    () => mergeWorldTowers([...localTowers, ...remoteProfiles]),
+    [localTowers, remoteProfiles],
+  )
 
   const occupied = useMemo(() => new Set(towers.map((t) => t.plot)), [towers])
   const avoid = useMemo(

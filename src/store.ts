@@ -3,6 +3,7 @@ import type { CityData, Selection, StoredTower } from './types'
 import { demoCityData, fetchCityData } from './lib/leetcode'
 import { loadTowers, saveTower } from './lib/world'
 import { getRoster } from './lib/roster'
+import { upsertProfile, fetchProfiles, supabaseEnabled } from './lib/supabase'
 import { DEFAULT_THEME, type ThemeKey } from './lib/themes'
 
 type ViewMode = 'city' | 'world' | 'multi'
@@ -18,8 +19,10 @@ interface CityState {
   towers: StoredTower[]
   worldSelection: StoredTower | null
   roster: CityData[]
+  remoteProfiles: StoredTower[]
   raceOpen: boolean
   insightsOpen: boolean
+  leaderboardOpen: boolean
   load: (username: string) => Promise<void>
   loadDemo: () => void
   setTheme: (theme: ThemeKey) => void
@@ -29,11 +32,14 @@ interface CityState {
   setWorldSelection: (tower: StoredTower | null) => void
   setRaceOpen: (open: boolean) => void
   setInsightsOpen: (open: boolean) => void
+  setLeaderboardOpen: (open: boolean) => void
+  /** Pull the real shared-world population from the backend (no-op if disabled). */
+  refreshWorld: () => Promise<void>
   /** Show a city directly (used for synthetic citizens; not persisted). */
   enterCity: (data: CityData) => void
 }
 
-export const useCityStore = create<CityState>((set) => ({
+export const useCityStore = create<CityState>((set, get) => ({
   data: null,
   loading: false,
   error: null,
@@ -44,8 +50,10 @@ export const useCityStore = create<CityState>((set) => ({
   towers: loadTowers(),
   worldSelection: null,
   roster: [],
+  remoteProfiles: [],
   raceOpen: false,
   insightsOpen: false,
+  leaderboardOpen: false,
 
   load: async (username: string) => {
     const name = username.trim()
@@ -72,6 +80,10 @@ export const useCityStore = create<CityState>((set) => ({
         worldSelection: null,
         towers: saveTower(data),
       })
+      // Publish to the shared world + pull the latest population (no-op offline).
+      if (supabaseEnabled) {
+        upsertProfile(data).then(() => get().refreshWorld())
+      }
     } catch (err) {
       set({
         loading: false,
@@ -97,7 +109,8 @@ export const useCityStore = create<CityState>((set) => ({
 
   setTheme: (theme) => set({ theme }),
   toggleNight: () => set((s) => ({ night: !s.night })),
-  setMode: (mode) =>
+  setMode: (mode) => {
+    if (mode === 'world' && supabaseEnabled) void get().refreshWorld()
     set((s) => ({
       mode,
       selection: null,
@@ -107,11 +120,18 @@ export const useCityStore = create<CityState>((set) => ({
         mode === 'multi' && s.roster.length === 0 && s.data
           ? getRoster(s.data.username)
           : s.roster,
-    })),
+    }))
+  },
   setSelection: (selection) => set({ selection }),
   setWorldSelection: (tower) => set({ worldSelection: tower }),
   setRaceOpen: (open) => set({ raceOpen: open }),
   setInsightsOpen: (open) => set({ insightsOpen: open }),
+  setLeaderboardOpen: (open) => set({ leaderboardOpen: open }),
+  refreshWorld: async () => {
+    if (!supabaseEnabled) return
+    const profiles = await fetchProfiles()
+    if (profiles.length) set({ remoteProfiles: profiles })
+  },
   enterCity: (data) =>
     set({ data, mode: 'city', selection: null, worldSelection: null }),
 }))

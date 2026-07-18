@@ -1,4 +1,5 @@
 import { THEMES, type ThemeKey } from '../lib/themes'
+import { supabaseEnabled } from '../lib/supabase'
 import { useCityStore } from '../store'
 
 const MODES: Array<{ key: 'city' | 'world' | 'multi'; label: string; title: string }> = [
@@ -16,6 +17,7 @@ export default function Controls() {
   const setMode = useCityStore((s) => s.setMode)
   const setRaceOpen = useCityStore((s) => s.setRaceOpen)
   const setInsightsOpen = useCityStore((s) => s.setInsightsOpen)
+  const setLeaderboardOpen = useCityStore((s) => s.setLeaderboardOpen)
 
   return (
     <div className="controls">
@@ -40,6 +42,16 @@ export default function Controls() {
       >
         📊 Insights
       </button>
+      {supabaseEnabled && (
+        <button
+          type="button"
+          className="lb-btn"
+          onClick={() => setLeaderboardOpen(true)}
+          title="Global leaderboard"
+        >
+          🏆 Ranks
+        </button>
+      )}
       <button
         type="button"
         className="race-btn"
