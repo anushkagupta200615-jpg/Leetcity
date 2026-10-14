@@ -30,7 +30,7 @@ rises as a glowing central spire. Built for the competitive-programming crowd.
 - Your city plus 3–5 others side by side; a 👑 crown tags the **Tallest Tower**
 
 **🏁 DSA Race**
-- A live race panel: solve the shown problem first for the most points (10 / 7 / 5 / 3 / 2), with a live leaderboard and simulated opponents — open a second tab to race for real via `BroadcastChannel`
+- A live race panel: solve the shown problem first for the most of the points (10 / 7 / 5 / 3 / 2), with a live leaderboard and simulated opponents — open a second tab to race for real via `BroadcastChannel`
 
 **Chrome**
 - 6 color **themes** (Classic, Matrix, Noir, Aurora, Ocean, Gold) · **day / night** toggle · retro pixel HUD with glassmorphism · deterministic per-username (same input → same city)
